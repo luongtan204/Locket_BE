@@ -1,0 +1,38 @@
+[
+  {
+    "key": "base_url",
+    "value": "http://localhost:4000",
+    "type": "string"
+  },
+  {
+    "key": "token",
+    "value": "",
+    "type": "string"
+  },
+  {
+    "key": "user_id",
+    "value": "",
+    "type": "string"
+  },
+  {
+    "key": "post_id",
+    "value": "656000000000000000000001",
+    "type": "string"
+  },
+  {
+    "key": "conversation_id",
+    "value": "",
+    "type": "string"
+  },
+  {
+    "key": "other_user_id",
+    "value": "",
+    "type": "string"
+  },
+  {
+    "key": "audit_log_id",
+    "value": "",
+    "type": "string"
+  }
+]
+

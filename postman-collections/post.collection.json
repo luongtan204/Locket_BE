@@ -1,0 +1,558 @@
+{
+  "info": {
+    "name": "Post API",
+    "description": "Post endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "// Sync token từ global variable vào collection variable",
+          "var globalToken = pm.globals.get('token');",
+          "if (globalToken) {",
+          "    pm.collectionVariables.set('token', globalToken);",
+          "}",
+          "",
+          "// Sync user_id từ global variable vào collection variable",
+          "var globalUserId = pm.globals.get('user_id');",
+          "if (globalUserId) {",
+          "    pm.collectionVariables.set('user_id', globalUserId);",
+          "}"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:4000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "post_id",
+      "value": "656000000000000000000001",
+      "type": "string"
+    },
+    {
+      "key": "wall_cursor",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "conversation_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "other_user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "audit_log_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Create Post",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "image",
+              "type": "file",
+              "src": []
+            },
+            {
+              "key": "caption",
+              "value": "Sáng nay nắng đẹp!",
+              "type": "text"
+            },
+            {
+              "key": "locationName",
+              "value": "Hanoi",
+              "type": "text"
+            },
+            {
+              "key": "lat",
+              "value": "21.03",
+              "type": "text"
+            },
+            {
+              "key": "lng",
+              "value": "105.85",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/api/posts",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "posts"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Suggest Caption (File Upload)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "image",
+              "type": "file",
+              "src": []
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/api/posts/suggest-caption",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "posts",
+            "suggest-caption"
+          ]
+        },
+        "description": "Gợi ý caption cho ảnh sử dụng Groq AI.\n\n**Cách 1: Gửi file (multipart/form-data)**\n- Gửi ảnh dưới dạng file upload\n- Backend sẽ tự động nén và gửi lên Groq API\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Caption suggested successfully\",\n  \"data\": {\n    \"caption\": \"Một buổi sáng đẹp trời...\"\n  }\n}\n```"
+      }
+    },
+    {
+      "name": "Suggest Caption (Base64)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"base64Image\": \"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k=\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/posts/suggest-caption",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "posts",
+            "suggest-caption"
+          ]
+        },
+        "description": "Gợi ý caption cho ảnh sử dụng Groq AI.\n\n**Cách 2: Gửi Base64 (JSON)**\n- Gửi ảnh dưới dạng base64 string\n- Format: `data:image/jpeg;base64,<base64_string>` hoặc chỉ `<base64_string>`\n- Backend sẽ tự động parse và xử lý\n\n**Request Body:**\n```json\n{\n  \"base64Image\": \"data:image/jpeg;base64,/9j/4AAQSkZJRg...\"\n}\n```\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Caption suggested successfully\",\n  \"data\": {\n    \"caption\": \"Một buổi sáng đẹp trời...\"\n  }\n}\n```\n\n**Lưu ý:**\n- Cần có GROQ_API_KEY trong .env để hoạt động\n- Ảnh sẽ được tự động nén xuống max 1024px trước khi gửi lên Groq\n- Caption được generate bằng tiếng Việt, phù hợp với mạng xã hội"
+      }
+    },
+    {
+      "name": "Get Post by ID",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Post has author populated', function () {",
+              "    var jsonData = pm.response.json();",
+              "    if (jsonData.data) {",
+              "        pm.expect(jsonData.data).to.have.property('author');",
+              "        pm.expect(jsonData.data.author).to.have.property('username');",
+              "        pm.expect(jsonData.data.author).to.have.property('displayName');",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/posts/{{post_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "posts",
+            "{{post_id}}"
+          ]
+        },
+        "description": "Lấy thông tin chi tiết một bài viết dựa vào ID.\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Post retrieved successfully\",\n  \"data\": {\n    \"_id\": \"...\",\n    \"author\": {\n      \"_id\": \"...\",\n      \"username\": \"user123\",\n      \"displayName\": \"User Name\",\n      \"avatarUrl\": \"https://...\"\n    },\n    \"imageUrl\": \"https://...\",\n    \"caption\": \"Sáng nay nắng đẹp!\",\n    \"location\": {\n      \"name\": \"Hanoi\",\n      \"lat\": 21.03,\n      \"lng\": 105.85\n    },\n    \"visibility\": \"friends\",\n    \"reactionCount\": 10,\n    \"commentCount\": 5,\n    \"createdAt\": \"2024-01-01T00:00:00.000Z\",\n    \"updatedAt\": \"2024-01-01T00:00:00.000Z\"\n  }\n}\n```\n\n**Lưu ý:**\n- Author được populate với thông tin username, displayName, avatarUrl\n- Không cần authentication để xem post"
+      }
+    },
+    {
+      "name": "Update Post",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Post updated successfully', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.data).to.have.property('_id');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"caption\": \"Caption đã được cập nhật!\",\n  \"location\": {\n    \"name\": \"Ho Chi Minh City\",\n    \"lat\": 10.762622,\n    \"lng\": 106.660172\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/posts/{{post_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "posts",
+            "{{post_id}}"
+          ]
+        },
+        "description": "Cập nhật bài viết. Chỉ cho phép sửa `caption` hoặc `location`. Không cho phép sửa ảnh (muốn đổi ảnh phải xóa đi đăng lại).\n\n**Yêu cầu:**\n- Header: `Authorization: Bearer <token>` (token của chủ bài viết)\n- Người sửa phải là chủ bài viết (`req.user.id === post.author.id`)\n\n**Request Body:**\n```json\n{\n  \"caption\": \"Caption mới (optional)\",\n  \"location\": {\n    \"name\": \"Tên địa điểm (optional)\",\n    \"lat\": 10.762622,\n    \"lng\": 106.660172\n  }\n}\n```\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Post updated successfully\",\n  \"data\": {\n    \"_id\": \"...\",\n    \"author\": {...},\n    \"caption\": \"Caption đã được cập nhật!\",\n    \"location\": {...},\n    ...\n  }\n}\n```\n\n**Lưu ý:**\n- Có thể chỉ cập nhật caption hoặc chỉ location, hoặc cả hai\n- Nếu không phải chủ bài viết, sẽ nhận lỗi 403"
+      }
+    },
+    {
+      "name": "Mark Post as Seen",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Post has viewers array', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.data).to.have.property('viewers');",
+              "    pm.expect(jsonData.data.viewers).to.be.an('array');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/posts/{{post_id}}/seen",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "posts",
+            "{{post_id}}",
+            "seen"
+          ]
+        },
+        "description": "Đánh dấu bài viết đã được xem (Mark as Seen).\n\n**Yêu cầu:**\n- Header: `Authorization: Bearer <token>`\n- Khi user mở ảnh lên xem, client gọi API này\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Post marked as seen successfully\",\n  \"data\": {\n    \"_id\": \"...\",\n    \"author\": {...},\n    \"viewers\": [\n      {\n        \"userId\": \"...\",\n        \"seenAt\": \"2024-01-01T00:00:00.000Z\"\n      }\n    ],\n    ...\n  }\n}\n```\n\n**Socket Event (Real-time):**\nKhi API này được gọi, server sẽ emit socket event `post_seen` về cho tác giả bài viết:\n```json\n{\n  \"postId\": \"...\",\n  \"viewedBy\": \"userId\",\n  \"seenAt\": \"2024-01-01T00:00:00.000Z\"\n}\n```\n\n**Lưu ý:**\n- Tác giả không thể tự đánh dấu đã xem bài viết của mình (400 error)\n- Nếu user đã xem rồi, sẽ cập nhật `seenAt` mới\n- Nếu user chưa xem, sẽ thêm vào mảng `viewers`\n- Socket event được gửi đến room `user:{authorId}`"
+      }
+    },
+    {
+      "name": "Get User Wall (First Page)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Response has data and pagination', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.data).to.have.property('data');",
+              "    pm.expect(jsonData.data).to.have.property('pagination');",
+              "    pm.expect(jsonData.data.pagination).to.have.property('nextCursor');",
+              "    pm.expect(jsonData.data.pagination).to.have.property('hasMore');",
+              "});",
+              "",
+              "// Lưu nextCursor vào collection variable",
+              "var jsonData = pm.response.json();",
+              "if (jsonData.success && jsonData.data && jsonData.data.pagination) {",
+              "    var nextCursor = jsonData.data.pagination.nextCursor;",
+              "    if (nextCursor) {",
+              "        pm.collectionVariables.set('wall_cursor', nextCursor);",
+              "        console.log('Next cursor saved:', nextCursor);",
+              "    } else {",
+              "        pm.collectionVariables.set('wall_cursor', '');",
+              "        console.log('No more data (hasMore = false)');",
+              "    }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/posts/user/:userId?limit=10",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "posts",
+            "user",
+            ":userId"
+          ],
+          "query": [
+            {
+              "key": "limit",
+              "value": "10",
+              "description": "Số lượng posts mỗi lần (default: 10, max: 50)"
+            }
+          ],
+          "variable": [
+            {
+              "key": "userId",
+              "value": "{{user_id}}",
+              "description": "ID của user chủ tường nhà"
+            }
+          ]
+        },
+        "description": "Lấy danh sách bài viết của một user (User Profile Feed / Wall) - Lần đầu.\n\n**Params:**\n- `userId`: ID của user chủ tường nhà\n\n**Query Params:**\n- `limit`: Số lượng posts mỗi lần (default: 10, max: 50)\n\n**Security:**\n- Cho phép xem nếu: user tự xem hoặc hai người là bạn bè (status: 'accepted')\n- Chặn (403) nếu: chưa kết bạn hoặc bị block\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"data\": [...posts...],\n    \"pagination\": {\n      \"nextCursor\": \"2023-10-25T10:00:00.000Z\" | null,\n      \"hasMore\": true | false\n    }\n  }\n}\n```\n\n**Lưu ý:**\n- nextCursor sẽ được tự động lưu vào collection variable `wall_cursor`\n- Sử dụng nextCursor này cho request \"Get User Wall (Next Page)\""
+      }
+    },
+    {
+      "name": "Get User Wall (Next Page)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Response has data and pagination', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.data).to.have.property('data');",
+              "    pm.expect(jsonData.data).to.have.property('pagination');",
+              "    pm.expect(jsonData.data.pagination).to.have.property('nextCursor');",
+              "    pm.expect(jsonData.data.pagination).to.have.property('hasMore');",
+              "});",
+              "",
+              "// Lưu nextCursor mới vào collection variable",
+              "var jsonData = pm.response.json();",
+              "if (jsonData.success && jsonData.data && jsonData.data.pagination) {",
+              "    var nextCursor = jsonData.data.pagination.nextCursor;",
+              "    if (nextCursor) {",
+              "        pm.collectionVariables.set('wall_cursor', nextCursor);",
+              "        console.log('Next cursor saved:', nextCursor);",
+              "    } else {",
+              "        pm.collectionVariables.set('wall_cursor', '');",
+              "        console.log('No more data (hasMore = false)');",
+              "    }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/posts/user/:userId?limit=10&cursor={{wall_cursor}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "posts",
+            "user",
+            ":userId"
+          ],
+          "query": [
+            {
+              "key": "limit",
+              "value": "10",
+              "description": "Số lượng posts mỗi lần (default: 10, max: 50)"
+            },
+            {
+              "key": "cursor",
+              "value": "{{wall_cursor}}",
+              "description": "Mốc thời gian (createdAt ISO string) từ lần gọi trước"
+            }
+          ],
+          "variable": [
+            {
+              "key": "userId",
+              "value": "{{user_id}}",
+              "description": "ID của user chủ tường nhà"
+            }
+          ]
+        },
+        "description": "Lấy danh sách bài viết của một user (User Profile Feed / Wall) - Trang tiếp theo.\n\n**Params:**\n- `userId`: ID của user chủ tường nhà\n\n**Query Params:**\n- `limit`: Số lượng posts mỗi lần (default: 10, max: 50)\n- `cursor`: Mốc thời gian (createdAt ISO string) từ lần gọi trước\n\n**Security:**\n- Cho phép xem nếu: user tự xem hoặc hai người là bạn bè (status: 'accepted')\n- Chặn (403) nếu: chưa kết bạn hoặc bị block\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"data\": [...posts...],\n    \"pagination\": {\n      \"nextCursor\": \"2023-10-25T10:00:00.000Z\" | null,\n      \"hasMore\": true | false\n    }\n  }\n}\n```\n\n**Cách sử dụng:**\n1. Gọi \"Get User Wall (First Page)\" trước\n2. Lấy `nextCursor` từ response\n3. Gọi \"Get User Wall (Next Page)\" với cursor đó\n4. Lặp lại cho đến khi `hasMore = false`"
+      }
+    },
+    {
+      "name": "Delete Post",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Post deleted successfully', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.data).to.have.property('postId');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/posts/{{post_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "posts",
+            "{{post_id}}"
+          ]
+        },
+        "description": "Xóa bài viết. Chỉ chủ bài viết mới được xóa.\n\n**Yêu cầu:**\n- Header: `Authorization: Bearer <token>` (token của chủ bài viết)\n- Người xóa phải là chủ bài viết (`req.user.id === post.author.id`)\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Post deleted successfully\",\n  \"data\": {\n    \"postId\": \"...\"\n  }\n}\n```\n\n**Lưu ý:**\n- Khi xóa bài trong DB, sẽ gọi API Cloudinary xóa luôn tấm ảnh đó trên đám mây để dọn rác\n- Tất cả comment và reaction liên quan cũng sẽ bị xóa\n- Nếu không phải chủ bài viết, sẽ nhận lỗi 403"
+      }
+    }
+  ]
+}

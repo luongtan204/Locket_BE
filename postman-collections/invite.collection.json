@@ -1,0 +1,131 @@
+{
+  "info": {
+    "name": "Invite API",
+    "description": "Invite link and deep linking endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "// Sync token từ global variable vào collection variable",
+          "var globalToken = pm.globals.get('token');",
+          "if (globalToken) {",
+          "    pm.collectionVariables.set('token', globalToken);",
+          "}",
+          "",
+          "// Sync user_id từ global variable vào collection variable",
+          "var globalUserId = pm.globals.get('user_id');",
+          "if (globalUserId) {",
+          "    pm.collectionVariables.set('user_id', globalUserId);",
+          "}"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:4000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Resolve Invite",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Response has user info', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.data).to.have.property('id');",
+              "    pm.expect(jsonData.data).to.have.property('username');",
+              "    pm.expect(jsonData.data).to.have.property('displayName');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"testuser\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/invites/resolve",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "invites",
+            "resolve"
+          ]
+        },
+        "description": "Resolve username thành user info để hiển thị popup kết bạn trong mobile app.\n\n**Request Body:**\n```json\n{\n  \"username\": \"testuser\"\n}\n```\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"User resolved successfully\",\n  \"data\": {\n    \"id\": \"...\",\n    \"username\": \"testuser\",\n    \"displayName\": \"Test User\",\n    \"avatarUrl\": \"https://...\" hoặc null\n  }\n}\n```\n\n**Lưu ý:**\n- API này được gọi từ mobile app khi user click vào deep link\n- Trả về thông tin user để hiển thị popup xác nhận kết bạn\n- Nếu user không tồn tại hoặc không active, sẽ trả về 404"
+      }
+    },
+    {
+      "name": "Get Invite Page (HTML)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/invite/:username",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "invite",
+            ":username"
+          ],
+          "variable": [
+            {
+              "key": "username",
+              "value": "testuser",
+              "description": "Username của user cần mời kết bạn"
+            }
+          ]
+        },
+        "description": "Trả về HTML page cho invite link. Page này sẽ:\n1. Hiển thị thông tin user (avatar, tên)\n2. Tự động thử mở app qua deep link: `locket://add-friend?username=xxx`\n3. Nếu không mở được app (sau 1s), tự động redirect đến App Store/Play Store\n\n**Deep Link Format:**\n- iOS/Android: `locket://add-friend?username=testuser`\n\n**Lưu ý:**\n- Endpoint này trả về HTML, không phải JSON\n- Không cần authentication\n- Tự động detect platform (iOS/Android) để redirect đến store phù hợp\n- Cần cập nhật App Store và Play Store URLs trong code"
+      }
+    }
+  ]
+}
+

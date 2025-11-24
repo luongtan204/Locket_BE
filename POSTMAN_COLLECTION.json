@@ -1,0 +1,1249 @@
+{
+  "info": {
+    "name": "Locket Backend API",
+    "description": "Complete API collection for Locket Backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:4000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "post_id",
+      "value": "656000000000000000000001",
+      "type": "string"
+    },
+    {
+      "key": "conversation_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "other_user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "audit_log_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/health",
+          "host": ["{{base_url}}"],
+          "path": ["api", "health"]
+        }
+      }
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser\",\n  \"password\": \"password123\",\n  \"email\": \"testuser@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('token', jsonData.data.token);",
+                  "    pm.collectionVariables.set('user_id', jsonData.data.user.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"testuser\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Send OTP (Email)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"user@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/send-otp",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "send-otp"]
+            }
+          }
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"user@example.com\",\n  \"code\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/verify-otp",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "verify-otp"]
+            }
+          }
+        },
+        {
+          "name": "Check Email Availability",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success field', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Response has available field', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('available');",
+                  "    pm.expect(jsonData.data.available).to.be.a('boolean');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/check-email/:email",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "check-email", ":email"],
+              "variable": [
+                {
+                  "key": "email",
+                  "value": "testuser@example.com",
+                  "description": "Email cần kiểm tra"
+                }
+              ]
+            },
+            "description": "Kiểm tra email đã tồn tại trong hệ thống chưa.\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Email is available\" hoặc \"Email already in use\",\n  \"data\": {\n    \"available\": true hoặc false\n  }\n}\n```\n\n**Lưu ý:**\n- `available: true` - Email có thể sử dụng (chưa tồn tại)\n- `available: false` - Email đã tồn tại\n- Email sẽ được normalize (lowercase, trim) trước khi kiểm tra"
+          }
+        },
+        {
+          "name": "Check Username Availability",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success field', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Response has available field', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('available');",
+                  "    pm.expect(jsonData.data.available).to.be.a('boolean');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/check-username/:username",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "check-username", ":username"],
+              "variable": [
+                {
+                  "key": "username",
+                  "value": "testuser",
+                  "description": "Username cần kiểm tra"
+                }
+              ]
+            },
+            "description": "Kiểm tra username đã tồn tại trong hệ thống chưa.\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Username is available\" hoặc \"Username already exists\",\n  \"data\": {\n    \"available\": true hoặc false\n  }\n}\n```\n\n**Lưu ý:**\n- `available: true` - Username có thể sử dụng (chưa tồn tại)\n- `available: false` - Username đã tồn tại\n- Username sẽ được normalize (lowercase, trim) trước khi kiểm tra\n- Username phải có ít nhất 3 ký tự"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Friendship",
+      "item": [
+        {
+          "name": "Send Friend Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"toUserId\": \"652000000000000000000002\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/friendships/request",
+              "host": ["{{base_url}}"],
+              "path": ["api", "friendships", "request"]
+            }
+          }
+        },
+        {
+          "name": "Accept Friend Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/friendships/:requestId/accept",
+              "host": ["{{base_url}}"],
+              "path": ["api", "friendships", ":requestId", "accept"],
+              "variable": [
+                {
+                  "key": "requestId",
+                  "value": "659000000000000000000001"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Post",
+      "item": [
+        {
+          "name": "Create Post",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "caption",
+                  "value": "Sáng nay nắng đẹp!",
+                  "type": "text"
+                },
+                {
+                  "key": "locationName",
+                  "value": "Hanoi",
+                  "type": "text"
+                },
+                {
+                  "key": "lat",
+                  "value": "21.03",
+                  "type": "text"
+                },
+                {
+                  "key": "lng",
+                  "value": "105.85",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/posts",
+              "host": ["{{base_url}}"],
+              "path": ["api", "posts"]
+            }
+          }
+        },
+        {
+          "name": "Suggest Caption (File Upload)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/posts/suggest-caption",
+              "host": ["{{base_url}}"],
+              "path": ["api", "posts", "suggest-caption"]
+            },
+            "description": "Gợi ý caption cho ảnh sử dụng Groq AI.\n\n**Cách 1: Gửi file (multipart/form-data)**\n- Gửi ảnh dưới dạng file upload\n- Backend sẽ tự động nén và gửi lên Groq API\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Caption suggested successfully\",\n  \"data\": {\n    \"caption\": \"Một buổi sáng đẹp trời...\"\n  }\n}\n```"
+          }
+        },
+        {
+          "name": "Suggest Caption (Base64)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"base64Image\": \"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k=\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/posts/suggest-caption",
+              "host": ["{{base_url}}"],
+              "path": ["api", "posts", "suggest-caption"]
+            },
+            "description": "Gợi ý caption cho ảnh sử dụng Groq AI.\n\n**Cách 2: Gửi Base64 (JSON)**\n- Gửi ảnh dưới dạng base64 string\n- Format: `data:image/jpeg;base64,<base64_string>` hoặc chỉ `<base64_string>`\n- Backend sẽ tự động parse và xử lý\n\n**Request Body:**\n```json\n{\n  \"base64Image\": \"data:image/jpeg;base64,/9j/4AAQSkZJRg...\"\n}\n```\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Caption suggested successfully\",\n  \"data\": {\n    \"caption\": \"Một buổi sáng đẹp trời...\"\n  }\n}\n```\n\n**Lưu ý:**\n- Cần có GROQ_API_KEY trong .env để hoạt động\n- Ảnh sẽ được tự động nén xuống max 1024px trước khi gửi lên Groq\n- Caption được generate bằng tiếng Việt, phù hợp với mạng xã hội"
+          }
+        },
+        {
+          "name": "Get Post by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success field', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Post has author populated', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data) {",
+                  "        pm.expect(jsonData.data).to.have.property('author');",
+                  "        pm.expect(jsonData.data.author).to.have.property('username');",
+                  "        pm.expect(jsonData.data.author).to.have.property('displayName');",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/posts/{{post_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "posts", "{{post_id}}"]
+            },
+            "description": "Lấy thông tin chi tiết một bài viết dựa vào ID.\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Post retrieved successfully\",\n  \"data\": {\n    \"_id\": \"...\",\n    \"author\": {\n      \"_id\": \"...\",\n      \"username\": \"user123\",\n      \"displayName\": \"User Name\",\n      \"avatarUrl\": \"https://...\"\n    },\n    \"imageUrl\": \"https://...\",\n    \"caption\": \"Sáng nay nắng đẹp!\",\n    \"location\": {\n      \"name\": \"Hanoi\",\n      \"lat\": 21.03,\n      \"lng\": 105.85\n    },\n    \"visibility\": \"friends\",\n    \"reactionCount\": 10,\n    \"commentCount\": 5,\n    \"createdAt\": \"2024-01-01T00:00:00.000Z\",\n    \"updatedAt\": \"2024-01-01T00:00:00.000Z\"\n  }\n}\n```\n\n**Lưu ý:**\n- Author được populate với thông tin username, displayName, avatarUrl\n- Không cần authentication để xem post"
+          }
+        },
+        {
+          "name": "Update Post",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success field', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Post updated successfully', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('_id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"caption\": \"Caption đã được cập nhật!\",\n  \"location\": {\n    \"name\": \"Ho Chi Minh City\",\n    \"lat\": 10.762622,\n    \"lng\": 106.660172\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/posts/{{post_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "posts", "{{post_id}}"]
+            },
+            "description": "Cập nhật bài viết. Chỉ cho phép sửa `caption` hoặc `location`. Không cho phép sửa ảnh (muốn đổi ảnh phải xóa đi đăng lại).\n\n**Yêu cầu:**\n- Header: `Authorization: Bearer <token>` (token của chủ bài viết)\n- Người sửa phải là chủ bài viết (`req.user.id === post.author.id`)\n\n**Request Body:**\n```json\n{\n  \"caption\": \"Caption mới (optional)\",\n  \"location\": {\n    \"name\": \"Tên địa điểm (optional)\",\n    \"lat\": 10.762622,\n    \"lng\": 106.660172\n  }\n}\n```\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Post updated successfully\",\n  \"data\": {\n    \"_id\": \"...\",\n    \"author\": {...},\n    \"caption\": \"Caption đã được cập nhật!\",\n    \"location\": {...},\n    ...\n  }\n}\n```\n\n**Lưu ý:**\n- Có thể chỉ cập nhật caption hoặc chỉ location, hoặc cả hai\n- Nếu không phải chủ bài viết, sẽ nhận lỗi 403"
+          }
+        },
+        {
+          "name": "Delete Post",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success field', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Post deleted successfully', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('postId');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/posts/{{post_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "posts", "{{post_id}}"]
+            },
+            "description": "Xóa bài viết. Chỉ chủ bài viết mới được xóa.\n\n**Yêu cầu:**\n- Header: `Authorization: Bearer <token>` (token của chủ bài viết)\n- Người xóa phải là chủ bài viết (`req.user.id === post.author.id`)\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Post deleted successfully\",\n  \"data\": {\n    \"postId\": \"...\"\n  }\n}\n```\n\n**Lưu ý:**\n- Khi xóa bài trong DB, sẽ gọi API Cloudinary xóa luôn tấm ảnh đó trên đám mây để dọn rác\n- Tất cả comment và reaction liên quan cũng sẽ bị xóa\n- Nếu không phải chủ bài viết, sẽ nhận lỗi 403"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Feed",
+      "item": [
+        {
+          "name": "Get Feed",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/feed?page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "feed"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reaction",
+      "item": [
+        {
+          "name": "Add Reaction",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"heart\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/posts/{{post_id}}/react",
+              "host": ["{{base_url}}"],
+              "path": ["api", "posts", "{{post_id}}", "react"]
+            }
+          }
+        },
+        {
+          "name": "Remove Reaction",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/posts/{{post_id}}/react",
+              "host": ["{{base_url}}"],
+              "path": ["api", "posts", "{{post_id}}", "react"]
+            }
+          }
+        },
+        {
+          "name": "Get User Reaction",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/posts/{{post_id}}/react",
+              "host": ["{{base_url}}"],
+              "path": ["api", "posts", "{{post_id}}", "react"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Comment",
+      "item": [
+        {
+          "name": "Create Comment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Đẹp quá!\",\n  \"parentCommentId\": null,\n  \"mentions\": []\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/posts/{{post_id}}/comment",
+              "host": ["{{base_url}}"],
+              "path": ["api", "posts", "{{post_id}}", "comment"]
+            }
+          }
+        },
+        {
+          "name": "Get Post Comments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/posts/{{post_id}}/comments?page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "posts", "{{post_id}}", "comments"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Comment",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/comments/:commentId",
+              "host": ["{{base_url}}"],
+              "path": ["api", "comments", ":commentId"],
+              "variable": [
+                {
+                  "key": "commentId",
+                  "value": "657000000000000000000001"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Chat",
+      "item": [
+        {
+          "name": "Get Conversations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/chat/conversations?page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "chat", "conversations"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create or Get Conversation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data._id) {",
+                  "        pm.collectionVariables.set('conversation_id', jsonData.data._id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"otherUserId\": \"{{other_user_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/chat/conversations",
+              "host": ["{{base_url}}"],
+              "path": ["api", "chat", "conversations"]
+            }
+          }
+        },
+        {
+          "name": "Get Messages",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/chat/conversations/:conversationId/messages?page=1&limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["api", "chat", "conversations", ":conversationId", "messages"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "conversationId",
+                  "value": "{{conversation_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Send Message (Text)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conversationId\": \"{{conversation_id}}\",\n  \"content\": \"Xin chào! Bạn khỏe không?\",\n  \"type\": \"text\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/chat/messages",
+              "host": ["{{base_url}}"],
+              "path": ["api", "chat", "messages"]
+            }
+          }
+        },
+        {
+          "name": "Send Message (Image)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "conversationId",
+                  "value": "{{conversation_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/chat/messages",
+              "host": ["{{base_url}}"],
+              "path": ["api", "chat", "messages"]
+            }
+          }
+        },
+        {
+          "name": "Mark Messages as Read",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/chat/conversations/:conversationId/read",
+              "host": ["{{base_url}}"],
+              "path": ["api", "chat", "conversations", ":conversationId", "read"],
+              "variable": [
+                {
+                  "key": "conversationId",
+                  "value": "{{conversation_id}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Ban User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success field', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('User isActive should be false', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.user) {",
+                  "        pm.expect(jsonData.data.user.isActive).to.be.false;",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/users/:userId/ban",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "users", ":userId", "ban"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "{{user_id}}",
+                  "description": "ID của user cần ban"
+                }
+              ]
+            },
+            "description": "Ban (khóa) tài khoản người dùng. Chỉ Admin/SuperAdmin mới có quyền.\n\n**Yêu cầu:**\n- Header: `Authorization: Bearer <token>` (token của admin)\n- User phải có role `admin` hoặc `superadmin`\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"User banned successfully\",\n  \"data\": {\n    \"user\": {\n      \"_id\": \"...\",\n      \"username\": \"...\",\n      \"isActive\": false\n    }\n  }\n}\n```\n\n**Lưu ý:**\n- Hành động này sẽ được ghi vào AdminAuditLog\n- isActive sẽ được set thành false"
+          }
+        },
+        {
+          "name": "Unban User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success field', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('User isActive should be true', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.user) {",
+                  "        pm.expect(jsonData.data.user.isActive).to.be.true;",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/users/:userId/unban",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "users", ":userId", "unban"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "{{user_id}}",
+                  "description": "ID của user cần unban"
+                }
+              ]
+            },
+            "description": "Unban (mở khóa) tài khoản người dùng. Chỉ Admin/SuperAdmin mới có quyền.\n\n**Yêu cầu:**\n- Header: `Authorization: Bearer <token>` (token của admin)\n- User phải có role `admin` hoặc `superadmin`\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"User unbanned successfully\",\n  \"data\": {\n    \"user\": {\n      \"_id\": \"...\",\n      \"username\": \"...\",\n      \"isActive\": true\n    }\n  }\n}\n```\n\n**Lưu ý:**\n- Hành động này sẽ được ghi vào AdminAuditLog với actionType 'UPDATE'\n- isActive sẽ được set thành true"
+          }
+        },
+        {
+          "name": "Delete Post",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success field', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Post should be deleted', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('post');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/posts/:postId",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "posts", ":postId"],
+              "variable": [
+                {
+                  "key": "postId",
+                  "value": "{{post_id}}"
+                }
+              ]
+            },
+            "description": "Xóa vĩnh viễn một bài đăng và tất cả comment, reaction liên quan. Chỉ Admin/SuperAdmin mới có quyền.\n\n**Yêu cầu:**\n- Header: `Authorization: Bearer <token>` (token của admin)\n- User phải có role `admin` hoặc `superadmin`\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Post deleted successfully\",\n  \"data\": {\n    \"post\": {\n      \"_id\": \"...\",\n      \"author\": \"...\",\n      \"caption\": \"...\"\n    }\n  }\n}\n```\n\n**Lưu ý:**\n- Hành động này sẽ được ghi vào AdminAuditLog\n- Post, Comment và Reaction liên quan sẽ bị xóa vĩnh viễn"
+          }
+        },
+        {
+          "name": "Get Audit Logs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success field', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Response has data with items array', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('items');",
+                  "    pm.expect(jsonData.data.items).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Audit log items have required fields', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data.items && jsonData.data.items.length > 0) {",
+                  "        var log = jsonData.data.items[0];",
+                  "        pm.expect(log).to.have.property('adminId');",
+                  "        pm.expect(log).to.have.property('actionType');",
+                  "        pm.expect(log).to.have.property('targetResource');",
+                  "        pm.expect(log).to.have.property('targetId');",
+                  "        pm.expect(log).to.have.property('details');",
+                  "        pm.expect(log).to.have.property('createdAt');",
+                  "        ",
+                  "        // Auto-save first audit log ID for testing",
+                  "        if (log._id) {",
+                  "            pm.collectionVariables.set('audit_log_id', log._id);",
+                  "        }",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/audit-logs?page=1&limit=20&actionType=BAN&targetResource=USER",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "audit-logs"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Số trang (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Số lượng items mỗi trang (default: 20, max: 100)"
+                },
+                {
+                  "key": "actionType",
+                  "value": "BAN",
+                  "description": "Filter theo actionType: CREATE, UPDATE, DELETE, BAN",
+                  "disabled": true
+                },
+                {
+                  "key": "targetResource",
+                  "value": "USER",
+                  "description": "Filter theo targetResource: USER, POST, SUBSCRIPTION",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Lấy danh sách audit logs của các hành động admin. Chỉ Admin/SuperAdmin mới có quyền.\n\n**Query Parameters:**\n- `page`: Số trang (default: 1)\n- `limit`: Số lượng items mỗi trang (default: 20, max: 100)\n- `actionType`: Filter theo loại hành động (CREATE, UPDATE, DELETE, BAN)\n- `targetResource`: Filter theo loại tài nguyên (USER, POST, SUBSCRIPTION)\n- `targetId`: Filter theo ID của tài nguyên\n- `adminId`: Filter theo ID của admin thực hiện\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"ok\",\n  \"data\": {\n    \"items\": [\n      {\n        \"_id\": \"...\",\n        \"adminId\": {\n          \"_id\": \"...\",\n          \"username\": \"admin\",\n          \"displayName\": \"Admin User\"\n        },\n        \"actionType\": \"BAN\",\n        \"targetResource\": \"USER\",\n        \"targetId\": \"652000000000000000000002\",\n        \"details\": {\n          \"description\": \"Ban user ... by admin\",\n          \"before\": { \"isActive\": true },\n          \"after\": { \"isActive\": false }\n        },\n        \"createdAt\": \"2024-01-01T00:00:00.000Z\"\n      }\n    ],\n    \"page\": 1,\n    \"limit\": 20,\n    \"total\": 100\n  }\n}\n```\n\n**Lưu ý:**\n- Kết quả được sắp xếp theo createdAt giảm dần (mới nhất trước)\n- AdminId được populate với thông tin username, displayName, email"
+          }
+        },
+        {
+          "name": "Get Audit Log by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success field', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Audit log has all required fields', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data) {",
+                  "        var log = jsonData.data;",
+                  "        pm.expect(log).to.have.property('_id');",
+                  "        pm.expect(log).to.have.property('adminId');",
+                  "        pm.expect(log).to.have.property('actionType');",
+                  "        pm.expect(log).to.have.property('targetResource');",
+                  "        pm.expect(log).to.have.property('targetId');",
+                  "        pm.expect(log).to.have.property('details');",
+                  "        pm.expect(log).to.have.property('createdAt');",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/audit-logs/:id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "audit-logs", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{audit_log_id}}",
+                  "description": "ID của audit log (có thể lấy từ Get Audit Logs response)"
+                }
+              ]
+            },
+            "description": "Lấy thông tin chi tiết của một audit log theo ID. Chỉ Admin/SuperAdmin mới có quyền.\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"ok\",\n  \"data\": {\n    \"_id\": \"...\",\n    \"adminId\": \"...\",\n    \"actionType\": \"BAN\",\n    \"targetResource\": \"USER\",\n    \"targetId\": \"652000000000000000000002\",\n    \"details\": {},\n    \"createdAt\": \"2024-01-01T00:00:00.000Z\"\n  }\n}\n```"
+          }
+        },
+        {
+          "name": "Test Unauthorized Access (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "pm.test('Response has error message', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('message');",
+                  "    pm.expect(jsonData.message).to.include('Access Denied');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/users/:userId/ban",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "users", ":userId", "ban"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "{{user_id}}",
+                  "description": "ID của user để test"
+                }
+              ]
+            },
+            "description": "Test case để verify middleware phân quyền. Nếu user không có role admin/superadmin, sẽ nhận 403.\n\n**Expected Response:**\n```json\n{\n  \"statusCode\": 403,\n  \"message\": \"Access Denied: Insufficient permissions\"\n}\n```"
+          }
+        }
+      ]
+    }
+  ]
+}
+

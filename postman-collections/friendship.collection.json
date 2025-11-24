@@ -1,0 +1,381 @@
+{
+  "info": {
+    "name": "Friendship API",
+    "description": "Friendship endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "// Sync token từ global variable vào collection variable",
+          "var globalToken = pm.globals.get('token');",
+          "if (globalToken) {",
+          "    pm.collectionVariables.set('token', globalToken);",
+          "}",
+          "",
+          "// Sync user_id từ global variable vào collection variable",
+          "var globalUserId = pm.globals.get('user_id');",
+          "if (globalUserId) {",
+          "    pm.collectionVariables.set('user_id', globalUserId);",
+          "}"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:4000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "post_id",
+      "value": "656000000000000000000001",
+      "type": "string"
+    },
+    {
+      "key": "conversation_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "other_user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "audit_log_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Get Friends List",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Response has friends array', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.data).to.have.property('friends');",
+              "    pm.expect(jsonData.data.friends).to.be.an('array');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/friendships",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "friendships"
+          ]
+        },
+        "description": "Lấy danh sách bạn bè (status = 'accepted') của user hiện tại.\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Friends list retrieved successfully\",\n  \"data\": {\n    \"friends\": [\n      {\n        \"_id\": \"...\",\n        \"username\": \"friend123\",\n        \"displayName\": \"Friend Name\",\n        \"avatarUrl\": \"https://...\",\n        \"friendshipId\": \"...\",\n        \"acceptedAt\": \"2024-01-01T00:00:00.000Z\"\n      }\n    ],\n    \"count\": 5\n  }\n}\n```\n\n**Lưu ý:**\n- Chỉ trả về những user có status 'accepted'\n- Thông tin bạn bè đã được populate (username, displayName, avatarUrl)\n- Sắp xếp theo acceptedAt giảm dần (bạn mới nhất trước)"
+      }
+    },
+    {
+      "name": "Get Pending Requests",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Response has requests array', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.data).to.have.property('requests');",
+              "    pm.expect(jsonData.data.requests).to.be.an('array');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/friendships/pending",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "friendships",
+            "pending"
+          ]
+        },
+        "description": "Lấy danh sách lời mời kết bạn đang pending mà user hiện tại nhận được.\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Pending requests retrieved successfully\",\n  \"data\": {\n    \"requests\": [\n      {\n        \"_id\": \"...\",\n        \"requestedBy\": {\n          \"_id\": \"...\",\n          \"username\": \"user123\",\n          \"displayName\": \"User Name\",\n          \"avatarUrl\": \"https://...\"\n        },\n        \"createdAt\": \"2024-01-01T00:00:00.000Z\"\n      }\n    ],\n    \"count\": 3\n  }\n}\n```\n\n**Lưu ý:**\n- Chỉ trả về những request mà user hiện tại là người nhận (không phải người gửi)\n- Thông tin người gửi đã được populate\n- Sắp xếp theo createdAt giảm dần (request mới nhất trước)"
+      }
+    },
+    {
+      "name": "Check Friendship Status",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Response has status field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.data).to.have.property('status');",
+              "    pm.expect(['none', 'pending', 'friends', 'blocked']).to.include(jsonData.data.status);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/friendships/check/:userId",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "friendships",
+            "check",
+            ":userId"
+          ],
+          "variable": [
+            {
+              "key": "userId",
+              "value": "{{other_user_id}}",
+              "description": "ID của user cần kiểm tra"
+            }
+          ]
+        },
+        "description": "Kiểm tra trạng thái friendship giữa user hiện tại và userId khác.\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Friendship status retrieved successfully\",\n  \"data\": {\n    \"status\": \"none\" | \"pending\" | \"friends\" | \"blocked\",\n    \"friendship\": {...},\n    \"isRequestedByMe\": true/false\n  }\n}\n```\n\n**Status values:**\n- `none`: Chưa có quan hệ\n- `pending`: Đang có lời mời kết bạn (pending)\n- `friends`: Đã là bạn bè (accepted)\n- `blocked`: Đã bị chặn\n\n**Lưu ý:**\n- `isRequestedByMe`: true nếu user hiện tại là người gửi request, false nếu là người nhận\n- Dùng để Frontend hiển thị nút bấm phù hợp (Add Friend, Cancel Request, Accept, etc.)"
+      }
+    },
+    {
+      "name": "Send Friend Request",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"toUserId\": \"{{other_user_id}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/friendships/request",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "friendships",
+            "request"
+          ]
+        },
+        "description": "Gửi lời mời kết bạn đến một user khác.\n\n**Request Body:**\n```json\n{\n  \"toUserId\": \"652000000000000000000002\"\n}\n```\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Friend request sent successfully\",\n  \"data\": {\n    \"_id\": \"...\",\n    \"userA\": \"...\",\n    \"userB\": \"...\",\n    \"requestedBy\": \"...\",\n    \"status\": \"pending\"\n  }\n}\n```\n\n**Lưu ý:**\n- Kiểm tra user đã đủ 20 bạn chưa (Locket limit)\n- Không thể gửi request cho chính mình\n- Nếu đã là bạn bè hoặc đã có request pending, sẽ báo lỗi"
+      }
+    },
+    {
+      "name": "Accept Friend Request",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/friendships/:requestId/accept",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "friendships",
+            ":requestId",
+            "accept"
+          ],
+          "variable": [
+            {
+              "key": "requestId",
+              "value": "659000000000000000000001",
+              "description": "ID của friend request"
+            }
+          ]
+        },
+        "description": "Chấp nhận lời mời kết bạn.\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Friend request accepted successfully\",\n  \"data\": {\n    \"_id\": \"...\",\n    \"status\": \"accepted\",\n    \"acceptedAt\": \"2024-01-01T00:00:00.000Z\"\n  }\n}\n```\n\n**Lưu ý:**\n- Chỉ người nhận request mới được accept\n- Kiểm tra cả 2 user đã đủ 20 bạn chưa trước khi accept\n- Status sẽ được update thành 'accepted'"
+      }
+    },
+    {
+      "name": "Reject Friend Request",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/friendships/:requestId/reject",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "friendships",
+            ":requestId",
+            "reject"
+          ],
+          "variable": [
+            {
+              "key": "requestId",
+              "value": "659000000000000000000001",
+              "description": "ID của friend request cần reject"
+            }
+          ]
+        },
+        "description": "Từ chối hoặc hủy lời mời kết bạn.\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Friend request rejected successfully\",\n  \"data\": null\n}\n```\n\n**Lưu ý:**\n- Chỉ người nhận request mới được reject\n- Request sẽ bị xóa khỏi database\n- Có thể dùng để hủy request đã gửi (nếu là người gửi)"
+      }
+    },
+    {
+      "name": "Unfriend",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/friendships/:friendId",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "friendships",
+            ":friendId"
+          ],
+          "variable": [
+            {
+              "key": "friendId",
+              "value": "{{other_user_id}}",
+              "description": "ID của người bạn cần hủy kết bạn"
+            }
+          ]
+        },
+        "description": "Hủy kết bạn (xóa quan hệ bạn bè).\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Unfriended successfully\",\n  \"data\": null\n}\n```\n\n**Lưu ý:**\n- Chỉ có thể unfriend những user đã là bạn bè (status = 'accepted')\n- Friendship record sẽ bị xóa khỏi database\n- Không thể unfriend chính mình"
+      }
+    }
+  ]
+}

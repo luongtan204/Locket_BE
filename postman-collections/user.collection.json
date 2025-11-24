@@ -1,0 +1,348 @@
+{
+  "info": {
+    "name": "User Settings API",
+    "description": "User profile and settings management endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "// Sync token từ global variable vào collection variable",
+          "var globalToken = pm.globals.get('token');",
+          "if (globalToken) {",
+          "    pm.collectionVariables.set('token', globalToken);",
+          "}",
+          "",
+          "// Sync user_id từ global variable vào collection variable",
+          "var globalUserId = pm.globals.get('user_id');",
+          "if (globalUserId) {",
+          "    pm.collectionVariables.set('user_id', globalUserId);",
+          "}"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:4000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Change Password",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Response message indicates success', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.message).to.include('Password changed');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"currentPassword\": \"oldpassword123\",\n  \"newPassword\": \"newpassword123\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/users/change-password",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "users",
+            "change-password"
+          ]
+        },
+        "description": "Đổi mật khẩu của user.\n\n**Request Body:**\n```json\n{\n  \"currentPassword\": \"oldpassword123\",\n  \"newPassword\": \"newpassword123\"\n}\n```\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Password changed successfully\",\n  \"data\": { ...user object... }\n}\n```\n\n**Lưu ý:**\n- Yêu cầu authentication (Bearer token)\n- Mật khẩu mới phải có ít nhất 6 ký tự\n- Nếu mật khẩu hiện tại sai, trả về 401"
+      }
+    },
+    {
+      "name": "Change Email",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Email is updated', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.data).to.have.property('email');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"password\": \"currentpassword123\",\n  \"newEmail\": \"newemail@example.com\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/users/change-email",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "users",
+            "change-email"
+          ]
+        },
+        "description": "Đổi email của user. Yêu cầu verify password để bảo mật.\n\n**Request Body:**\n```json\n{\n  \"password\": \"currentpassword123\",\n  \"newEmail\": \"newemail@example.com\"\n}\n```\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Email changed successfully\",\n  \"data\": { ...user object... }\n}\n```\n\n**Lưu ý:**\n- Yêu cầu authentication (Bearer token)\n- Bắt buộc phải verify password trước khi đổi email\n- Kiểm tra duplicate email (409 nếu email đã tồn tại)\n- Email sẽ được normalize (lowercase, trim)"
+      }
+    },
+    {
+      "name": "Update Profile",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Profile is updated', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.data).to.have.property('displayName');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"displayName\": \"New Display Name\",\n  \"phone\": \"+84123456789\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/users/profile",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "users",
+            "profile"
+          ]
+        },
+        "description": "Cập nhật thông tin cơ bản của user (displayName, phone).\n\n**Request Body:**\n```json\n{\n  \"displayName\": \"New Display Name\",\n  \"phone\": \"+84123456789\"\n}\n```\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Profile updated successfully\",\n  \"data\": { ...user object... }\n}\n```\n\n**Lưu ý:**\n- Yêu cầu authentication (Bearer token)\n- Có thể cập nhật displayName hoặc phone hoặc cả hai\n- Kiểm tra duplicate phone (409 nếu số điện thoại đã được sử dụng)\n- Nếu phone là chuỗi rỗng, sẽ xóa phone của user"
+      }
+    },
+    {
+      "name": "Update Avatar",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Avatar is updated', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.data).to.have.property('avatarUrl');",
+              "    pm.expect(jsonData.data).to.have.property('avatarPublicId');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "avatar",
+              "type": "file",
+              "src": [],
+              "description": "Avatar image file (max 10MB)"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/api/users/avatar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "users",
+            "avatar"
+          ]
+        },
+        "description": "Đổi avatar của user.\n\n**Request:**\n- Method: PATCH\n- Content-Type: multipart/form-data\n- Body: Form data với field `avatar` (file ảnh)\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Avatar updated successfully\",\n  \"data\": { ...user object với avatarUrl và avatarPublicId... }\n}\n```\n\n**Lưu ý:**\n- Yêu cầu authentication (Bearer token)\n- Chỉ chấp nhận file ảnh (image/*)\n- Kích thước tối đa: 10MB\n- Avatar cũ sẽ tự động bị xóa khỏi Cloudinary trước khi upload avatar mới\n- Avatar sẽ được resize về 400x400px và optimize"
+      }
+    },
+    {
+      "name": "Search Users",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Response has data array', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.data).to.be.an('array');",
+              "});",
+              "",
+              "pm.test('Users have required fields', function () {",
+              "    var jsonData = pm.response.json();",
+              "    if (jsonData.data.length > 0) {",
+              "        var user = jsonData.data[0];",
+              "        pm.expect(user).to.have.property('_id');",
+              "        pm.expect(user).to.have.property('username');",
+              "        pm.expect(user).to.not.have.property('passwordHash');",
+              "        pm.expect(user).to.not.have.property('email');",
+              "        pm.expect(user).to.not.have.property('phone');",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/users/search?keyword=test",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "users",
+            "search"
+          ],
+          "query": [
+            {
+              "key": "keyword",
+              "value": "test",
+              "description": "Từ khóa tìm kiếm (username hoặc displayName)"
+            }
+          ]
+        },
+        "description": "Tìm kiếm người dùng theo keyword.\n\n**Query Params:**\n- `keyword` (required): Từ khóa tìm kiếm\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Search results\",\n  \"data\": [\n    {\n      \"_id\": \"...\",\n      \"username\": \"testuser\",\n      \"displayName\": \"Test User\",\n      \"avatarUrl\": \"https://...\" hoặc null\n    }\n  ]\n}\n```\n\n**Logic tìm kiếm:**\n- Tìm kiếm các user có `username` HOẶC `displayName` khớp với keyword\n- Sử dụng Regex case-insensitive (không phân biệt hoa thường)\n- Partial match (tìm kiếm gần đúng)\n- Loại bỏ user hiện tại khỏi kết quả\n- Chỉ trả về tối đa 20 kết quả\n- Chỉ lấy user active (`isActive: true`)\n\n**Các trường trả về (chỉ public):**\n- `_id`: ID của user\n- `username`: Username\n- `displayName`: Tên hiển thị (optional)\n- `avatarUrl`: URL avatar (optional)\n\n**KHÔNG trả về:**\n- `passwordHash`\n- `email`\n- `phone`\n- `otp`\n\n**Ví dụ:**\n- Tìm \"tuan\" → sẽ ra \"Tuan_Anh\", \"Minh_Tuan\", \"tuan123\"\n- Tìm \"john\" → sẽ ra \"john_doe\", \"Johnny\", \"john123\""
+      }
+    }
+  ]
+}
+

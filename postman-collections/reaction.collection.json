@@ -1,0 +1,147 @@
+{
+  "info": {
+    "name": "Reaction API",
+    "description": "Reaction endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "// Sync token từ global variable vào collection variable",
+          "var globalToken = pm.globals.get('token');",
+          "if (globalToken) {",
+          "    pm.collectionVariables.set('token', globalToken);",
+          "}",
+          "",
+          "// Sync user_id từ global variable vào collection variable",
+          "var globalUserId = pm.globals.get('user_id');",
+          "if (globalUserId) {",
+          "    pm.collectionVariables.set('user_id', globalUserId);",
+          "}"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:4000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "post_id",
+      "value": "656000000000000000000001",
+      "type": "string"
+    },
+    {
+      "key": "conversation_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "other_user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "audit_log_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Add Reaction",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"type\": \"heart\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/posts/{{post_id}}/react",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "posts",
+            "{{post_id}}",
+            "react"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Remove Reaction",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/posts/{{post_id}}/react",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "posts",
+            "{{post_id}}",
+            "react"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get User Reaction",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/posts/{{post_id}}/react",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "posts",
+            "{{post_id}}",
+            "react"
+          ]
+        }
+      }
+    }
+  ]
+}

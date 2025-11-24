@@ -1,0 +1,251 @@
+{
+  "baseUrl": "http://localhost:4000",
+  "endpoints": {
+    "health": {
+      "method": "GET",
+      "url": "/api/health",
+      "headers": {},
+      "body": null
+    },
+    "register": {
+      "method": "POST",
+      "url": "/api/auth/register",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "username": "testuser",
+        "password": "password123",
+        "email": "testuser@example.com"
+      }
+    },
+    "login": {
+      "method": "POST",
+      "url": "/api/auth/login",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "identifier": "testuser",
+        "password": "password123"
+      }
+    },
+    "sendOTP_email": {
+      "method": "POST",
+      "url": "/api/auth/send-otp",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "identifier": "user@example.com"
+      }
+    },
+    "sendOTP_phone": {
+      "method": "POST",
+      "url": "/api/auth/send-otp",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "identifier": "+84123456789"
+      }
+    },
+    "verifyOTP": {
+      "method": "POST",
+      "url": "/api/auth/verify-otp",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "identifier": "user@example.com",
+        "code": "123456"
+      }
+    },
+    "sendFriendRequest": {
+      "method": "POST",
+      "url": "/api/friendships/request",
+      "headers": {
+        "Authorization": "Bearer <TOKEN>",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "toUserId": "652000000000000000000002"
+      }
+    },
+    "acceptFriendRequest": {
+      "method": "POST",
+      "url": "/api/friendships/659000000000000000000001/accept",
+      "headers": {
+        "Authorization": "Bearer <TOKEN>"
+      },
+      "body": null
+    },
+    "rejectFriendRequest": {
+      "method": "POST",
+      "url": "/api/friendships/659000000000000000000001/reject",
+      "headers": {
+        "Authorization": "Bearer <TOKEN>"
+      },
+      "body": null
+    },
+    "createPost": {
+      "method": "POST",
+      "url": "/api/posts",
+      "headers": {
+        "Authorization": "Bearer <TOKEN>"
+      },
+      "body": "multipart/form-data",
+      "formData": {
+        "image": "<FILE_PATH>",
+        "caption": "Sáng nay nắng đẹp!",
+        "locationName": "Hanoi",
+        "lat": "21.03",
+        "lng": "105.85",
+        "visibility": "friends"
+      }
+    },
+    "getFeed": {
+      "method": "GET",
+      "url": "/api/feed?page=1&limit=20",
+      "headers": {
+        "Authorization": "Bearer <TOKEN>"
+      },
+      "body": null
+    },
+    "addReaction": {
+      "method": "POST",
+      "url": "/api/posts/656000000000000000000001/react",
+      "headers": {
+        "Authorization": "Bearer <TOKEN>",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "type": "heart"
+      }
+    },
+    "removeReaction": {
+      "method": "DELETE",
+      "url": "/api/posts/656000000000000000000001/react",
+      "headers": {
+        "Authorization": "Bearer <TOKEN>"
+      },
+      "body": null
+    },
+    "getUserReaction": {
+      "method": "GET",
+      "url": "/api/posts/656000000000000000000001/react",
+      "headers": {
+        "Authorization": "Bearer <TOKEN>"
+      },
+      "body": null
+    },
+    "createComment": {
+      "method": "POST",
+      "url": "/api/posts/656000000000000000000001/comment",
+      "headers": {
+        "Authorization": "Bearer <TOKEN>",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "content": "Đẹp quá!",
+        "parentCommentId": null,
+        "mentions": ["652000000000000000000001"]
+      }
+    },
+    "createReply": {
+      "method": "POST",
+      "url": "/api/posts/656000000000000000000001/comment",
+      "headers": {
+        "Authorization": "Bearer <TOKEN>",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "content": "Cảm ơn bạn!",
+        "parentCommentId": "657000000000000000000001",
+        "mentions": ["652000000000000000000002"]
+      }
+    },
+    "getPostComments": {
+      "method": "GET",
+      "url": "/api/posts/656000000000000000000001/comments?page=1&limit=20",
+      "headers": {},
+      "body": null
+    },
+    "getCommentReplies": {
+      "method": "GET",
+      "url": "/api/comments/657000000000000000000001/replies?page=1&limit=10",
+      "headers": {},
+      "body": null
+    },
+    "deleteComment": {
+      "method": "DELETE",
+      "url": "/api/comments/657000000000000000000001",
+      "headers": {
+        "Authorization": "Bearer <TOKEN>"
+      },
+      "body": null
+    }
+  },
+  "testFlow": [
+    {
+      "step": 1,
+      "name": "Health Check",
+      "endpoint": "health"
+    },
+    {
+      "step": 2,
+      "name": "Register User",
+      "endpoint": "register",
+      "note": "Lưu token từ response"
+    },
+    {
+      "step": 3,
+      "name": "Login",
+      "endpoint": "login",
+      "note": "Lưu token để dùng cho các request sau"
+    },
+    {
+      "step": 4,
+      "name": "Send Friend Request",
+      "endpoint": "sendFriendRequest",
+      "note": "Thay <TOKEN> và toUserId"
+    },
+    {
+      "step": 5,
+      "name": "Accept Friend Request",
+      "endpoint": "acceptFriendRequest",
+      "note": "Dùng token của user nhận request"
+    },
+    {
+      "step": 6,
+      "name": "Create Post",
+      "endpoint": "createPost",
+      "note": "Upload file ảnh thực tế"
+    },
+    {
+      "step": 7,
+      "name": "Get Feed",
+      "endpoint": "getFeed",
+      "note": "Sẽ thấy post và ads (nếu không premium)"
+    },
+    {
+      "step": 8,
+      "name": "Add Reaction",
+      "endpoint": "addReaction",
+      "note": "Thay postId"
+    },
+    {
+      "step": 9,
+      "name": "Create Comment",
+      "endpoint": "createComment",
+      "note": "Thay postId"
+    },
+    {
+      "step": 10,
+      "name": "Get Comments",
+      "endpoint": "getPostComments",
+      "note": "Xem danh sách comments"
+    }
+  ]
+}
+

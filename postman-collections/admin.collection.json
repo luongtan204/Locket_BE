@@ -1,0 +1,450 @@
+{
+  "info": {
+    "name": "Admin API",
+    "description": "Admin endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "// Sync token từ global variable vào collection variable",
+          "var globalToken = pm.globals.get('token');",
+          "if (globalToken) {",
+          "    pm.collectionVariables.set('token', globalToken);",
+          "}",
+          "",
+          "// Sync user_id từ global variable vào collection variable",
+          "var globalUserId = pm.globals.get('user_id');",
+          "if (globalUserId) {",
+          "    pm.collectionVariables.set('user_id', globalUserId);",
+          "}"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:4000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "post_id",
+      "value": "656000000000000000000001",
+      "type": "string"
+    },
+    {
+      "key": "conversation_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "other_user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "audit_log_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Ban User",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('User isActive should be false', function () {",
+              "    var jsonData = pm.response.json();",
+              "    if (jsonData.data && jsonData.data.user) {",
+              "        pm.expect(jsonData.data.user.isActive).to.be.false;",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/admin/users/:userId/ban",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "users",
+            ":userId",
+            "ban"
+          ],
+          "variable": [
+            {
+              "key": "userId",
+              "value": "{{user_id}}",
+              "description": "ID của user cần ban"
+            }
+          ]
+        },
+        "description": "Ban (khóa) tài khoản người dùng. Chỉ Admin/SuperAdmin mới có quyền.\n\n**Yêu cầu:**\n- Header: `Authorization: Bearer <token>` (token của admin)\n- User phải có role `admin` hoặc `superadmin`\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"User banned successfully\",\n  \"data\": {\n    \"user\": {\n      \"_id\": \"...\",\n      \"username\": \"...\",\n      \"isActive\": false\n    }\n  }\n}\n```\n\n**Lưu ý:**\n- Hành động này sẽ được ghi vào AdminAuditLog\n- isActive sẽ được set thành false"
+      }
+    },
+    {
+      "name": "Unban User",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('User isActive should be true', function () {",
+              "    var jsonData = pm.response.json();",
+              "    if (jsonData.data && jsonData.data.user) {",
+              "        pm.expect(jsonData.data.user.isActive).to.be.true;",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/admin/users/:userId/unban",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "users",
+            ":userId",
+            "unban"
+          ],
+          "variable": [
+            {
+              "key": "userId",
+              "value": "{{user_id}}",
+              "description": "ID của user cần unban"
+            }
+          ]
+        },
+        "description": "Unban (mở khóa) tài khoản người dùng. Chỉ Admin/SuperAdmin mới có quyền.\n\n**Yêu cầu:**\n- Header: `Authorization: Bearer <token>` (token của admin)\n- User phải có role `admin` hoặc `superadmin`\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"User unbanned successfully\",\n  \"data\": {\n    \"user\": {\n      \"_id\": \"...\",\n      \"username\": \"...\",\n      \"isActive\": true\n    }\n  }\n}\n```\n\n**Lưu ý:**\n- Hành động này sẽ được ghi vào AdminAuditLog với actionType 'UPDATE'\n- isActive sẽ được set thành true"
+      }
+    },
+    {
+      "name": "Delete Post",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Post should be deleted', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.data).to.have.property('post');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/admin/posts/:postId",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "posts",
+            ":postId"
+          ],
+          "variable": [
+            {
+              "key": "postId",
+              "value": "{{post_id}}"
+            }
+          ]
+        },
+        "description": "Xóa vĩnh viễn một bài đăng và tất cả comment, reaction liên quan. Chỉ Admin/SuperAdmin mới có quyền.\n\n**Yêu cầu:**\n- Header: `Authorization: Bearer <token>` (token của admin)\n- User phải có role `admin` hoặc `superadmin`\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Post deleted successfully\",\n  \"data\": {\n    \"post\": {\n      \"_id\": \"...\",\n      \"author\": \"...\",\n      \"caption\": \"...\"\n    }\n  }\n}\n```\n\n**Lưu ý:**\n- Hành động này sẽ được ghi vào AdminAuditLog\n- Post, Comment và Reaction liên quan sẽ bị xóa vĩnh viễn"
+      }
+    },
+    {
+      "name": "Get Audit Logs",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Response has data with items array', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.data).to.have.property('items');",
+              "    pm.expect(jsonData.data.items).to.be.an('array');",
+              "});",
+              "",
+              "pm.test('Audit log items have required fields', function () {",
+              "    var jsonData = pm.response.json();",
+              "    if (jsonData.data.items && jsonData.data.items.length > 0) {",
+              "        var log = jsonData.data.items[0];",
+              "        pm.expect(log).to.have.property('adminId');",
+              "        pm.expect(log).to.have.property('actionType');",
+              "        pm.expect(log).to.have.property('targetResource');",
+              "        pm.expect(log).to.have.property('targetId');",
+              "        pm.expect(log).to.have.property('details');",
+              "        pm.expect(log).to.have.property('createdAt');",
+              "        ",
+              "        // Auto-save first audit log ID for testing",
+              "        if (log._id) {",
+              "            pm.collectionVariables.set('audit_log_id', log._id);",
+              "        }",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/admin/audit-logs?page=1&limit=20&actionType=BAN&targetResource=USER",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "audit-logs"
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "1",
+              "description": "Số trang (default: 1)"
+            },
+            {
+              "key": "limit",
+              "value": "20",
+              "description": "Số lượng items mỗi trang (default: 20, max: 100)"
+            },
+            {
+              "key": "actionType",
+              "value": "BAN",
+              "description": "Filter theo actionType: CREATE, UPDATE, DELETE, BAN",
+              "disabled": true
+            },
+            {
+              "key": "targetResource",
+              "value": "USER",
+              "description": "Filter theo targetResource: USER, POST, SUBSCRIPTION",
+              "disabled": true
+            }
+          ]
+        },
+        "description": "Lấy danh sách audit logs của các hành động admin. Chỉ Admin/SuperAdmin mới có quyền.\n\n**Query Parameters:**\n- `page`: Số trang (default: 1)\n- `limit`: Số lượng items mỗi trang (default: 20, max: 100)\n- `actionType`: Filter theo loại hành động (CREATE, UPDATE, DELETE, BAN)\n- `targetResource`: Filter theo loại tài nguyên (USER, POST, SUBSCRIPTION)\n- `targetId`: Filter theo ID của tài nguyên\n- `adminId`: Filter theo ID của admin thực hiện\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"ok\",\n  \"data\": {\n    \"items\": [\n      {\n        \"_id\": \"...\",\n        \"adminId\": {\n          \"_id\": \"...\",\n          \"username\": \"admin\",\n          \"displayName\": \"Admin User\"\n        },\n        \"actionType\": \"BAN\",\n        \"targetResource\": \"USER\",\n        \"targetId\": \"652000000000000000000002\",\n        \"details\": {\n          \"description\": \"Ban user ... by admin\",\n          \"before\": { \"isActive\": true },\n          \"after\": { \"isActive\": false }\n        },\n        \"createdAt\": \"2024-01-01T00:00:00.000Z\"\n      }\n    ],\n    \"page\": 1,\n    \"limit\": 20,\n    \"total\": 100\n  }\n}\n```\n\n**Lưu ý:**\n- Kết quả được sắp xếp theo createdAt giảm dần (mới nhất trước)\n- AdminId được populate với thông tin username, displayName, email"
+      }
+    },
+    {
+      "name": "Get Audit Log by ID",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Audit log has all required fields', function () {",
+              "    var jsonData = pm.response.json();",
+              "    if (jsonData.data) {",
+              "        var log = jsonData.data;",
+              "        pm.expect(log).to.have.property('_id');",
+              "        pm.expect(log).to.have.property('adminId');",
+              "        pm.expect(log).to.have.property('actionType');",
+              "        pm.expect(log).to.have.property('targetResource');",
+              "        pm.expect(log).to.have.property('targetId');",
+              "        pm.expect(log).to.have.property('details');",
+              "        pm.expect(log).to.have.property('createdAt');",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/admin/audit-logs/:id",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "audit-logs",
+            ":id"
+          ],
+          "variable": [
+            {
+              "key": "id",
+              "value": "{{audit_log_id}}",
+              "description": "ID của audit log (có thể lấy từ Get Audit Logs response)"
+            }
+          ]
+        },
+        "description": "Lấy thông tin chi tiết của một audit log theo ID. Chỉ Admin/SuperAdmin mới có quyền.\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"ok\",\n  \"data\": {\n    \"_id\": \"...\",\n    \"adminId\": \"...\",\n    \"actionType\": \"BAN\",\n    \"targetResource\": \"USER\",\n    \"targetId\": \"652000000000000000000002\",\n    \"details\": {},\n    \"createdAt\": \"2024-01-01T00:00:00.000Z\"\n  }\n}\n```"
+      }
+    },
+    {
+      "name": "Test Unauthorized Access (403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 403', function () {",
+              "    pm.response.to.have.status(403);",
+              "});",
+              "",
+              "pm.test('Response has error message', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('message');",
+              "    pm.expect(jsonData.message).to.include('Access Denied');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/admin/users/:userId/ban",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "users",
+            ":userId",
+            "ban"
+          ],
+          "variable": [
+            {
+              "key": "userId",
+              "value": "{{user_id}}",
+              "description": "ID của user để test"
+            }
+          ]
+        },
+        "description": "Test case để verify middleware phân quyền. Nếu user không có role admin/superadmin, sẽ nhận 403.\n\n**Expected Response:**\n```json\n{\n  \"statusCode\": 403,\n  \"message\": \"Access Denied: Insufficient permissions\"\n}\n```"
+      }
+    }
+  ]
+}

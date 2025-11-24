@@ -1,0 +1,442 @@
+{
+  "info": {
+    "name": "Auth API",
+    "description": "Auth endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:4000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "post_id",
+      "value": "656000000000000000000001",
+      "type": "string"
+    },
+    {
+      "key": "conversation_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "other_user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "audit_log_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Register",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "// Lưu token và user_id vào collection variables sau khi đăng ký",
+              "if (pm.response.code === 201) {",
+              "    try {",
+              "        var jsonData = pm.response.json();",
+              "        ",
+              "        if (jsonData.success && jsonData.data) {",
+              "            // Lưu token",
+              "            if (jsonData.data.token) {",
+              "                pm.collectionVariables.set('token', jsonData.data.token);",
+              "                pm.globals.set('token', jsonData.data.token);",
+              "                console.log('Token saved to collection and global variables');",
+              "            }",
+              "            ",
+              "            // Lưu user_id",
+              "            if (jsonData.data.user && jsonData.data.user.id) {",
+              "                pm.collectionVariables.set('user_id', jsonData.data.user.id);",
+              "                pm.globals.set('user_id', jsonData.data.user.id);",
+              "                console.log('User ID saved:', jsonData.data.user.id);",
+              "            }",
+              "        }",
+              "    } catch (error) {",
+              "        console.error('Error saving token:', error);",
+              "    }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"testuser\",\n  \"password\": \"password123\",\n  \"email\": \"testuser@example.com\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/register",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "register"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "// Lưu token và user_id vào collection variables",
+              "if (pm.response.code === 200) {",
+              "    try {",
+              "        var jsonData = pm.response.json();",
+              "        ",
+              "        if (jsonData.success && jsonData.data) {",
+              "            // Lưu token",
+              "            if (jsonData.data.token) {",
+              "                pm.collectionVariables.set('token', jsonData.data.token);",
+              "                pm.globals.set('token', jsonData.data.token);",
+              "                console.log('Token saved to collection and global variables');",
+              "            } else {",
+              "                console.error('Token not found in response:', jsonData);",
+              "            }",
+              "            ",
+              "            // Lưu user_id",
+              "            if (jsonData.data.user && jsonData.data.user.id) {",
+              "                pm.collectionVariables.set('user_id', jsonData.data.user.id);",
+              "                pm.globals.set('user_id', jsonData.data.user.id);",
+              "                console.log('User ID saved:', jsonData.data.user.id);",
+              "            } else {",
+              "                console.error('User ID not found in response:', jsonData);",
+              "            }",
+              "        } else {",
+              "            console.error('Invalid response structure:', jsonData);",
+              "        }",
+              "    } catch (error) {",
+              "        console.error('Error saving token:', error);",
+              "    }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"identifier\": \"testuser\",\n  \"password\": \"password123\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/login",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Send OTP (Email)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"identifier\": \"user@example.com\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/send-otp",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "send-otp"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Verify OTP",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "// Lưu token và user_id vào collection variables sau khi verify OTP",
+              "if (pm.response.code === 200) {",
+              "    try {",
+              "        var jsonData = pm.response.json();",
+              "        ",
+              "        if (jsonData.success && jsonData.data) {",
+              "            // Lưu token",
+              "            if (jsonData.data.token) {",
+              "                pm.collectionVariables.set('token', jsonData.data.token);",
+              "                pm.globals.set('token', jsonData.data.token);",
+              "                console.log('Token saved to collection and global variables');",
+              "            }",
+              "            ",
+              "            // Lưu user_id",
+              "            if (jsonData.data.user && jsonData.data.user.id) {",
+              "                pm.collectionVariables.set('user_id', jsonData.data.user.id);",
+              "                pm.globals.set('user_id', jsonData.data.user.id);",
+              "                console.log('User ID saved:', jsonData.data.user.id);",
+              "            }",
+              "        }",
+              "    } catch (error) {",
+              "        console.error('Error saving token:', error);",
+              "    }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"identifier\": \"user@example.com\",\n  \"code\": \"123456\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/verify-otp",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "verify-otp"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Check Email Availability",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Response has available field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.data).to.have.property('available');",
+              "    pm.expect(jsonData.data.available).to.be.a('boolean');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/auth/check-email/:email",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "check-email",
+            ":email"
+          ],
+          "variable": [
+            {
+              "key": "email",
+              "value": "testuser@example.com",
+              "description": "Email cần kiểm tra"
+            }
+          ]
+        },
+        "description": "Kiểm tra email đã tồn tại trong hệ thống chưa.\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Email is available\" hoặc \"Email already in use\",\n  \"data\": {\n    \"available\": true hoặc false\n  }\n}\n```\n\n**Lưu ý:**\n- `available: true` - Email có thể sử dụng (chưa tồn tại)\n- `available: false` - Email đã tồn tại\n- Email sẽ được normalize (lowercase, trim) trước khi kiểm tra"
+      }
+    },
+    {
+      "name": "Reset Password",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Response has message field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('message');",
+              "    pm.expect(jsonData.message).to.include('Password reset successfully');",
+              "});",
+              "",
+              "pm.test('Response has data field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('data');",
+              "});",
+              "",
+              "// Log success message",
+              "if (pm.response.code === 200) {",
+              "    var jsonData = pm.response.json();",
+              "    console.log('Password reset successfully:', jsonData.message);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"identifier\": \"user@example.com\",\n  \"code\": \"123456\",\n  \"newPassword\": \"newpassword123\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/reset-password",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "reset-password"
+          ]
+        },
+        "description": "Đặt lại mật khẩu sau khi đã verify OTP thành công.\n\n**Flow:**\n1. Gọi `Send OTP` để nhận mã OTP\n2. Gọi `Verify OTP` để xác thực mã OTP\n3. Gọi `Reset Password` để đặt lại mật khẩu mới\n\n**Body:**\n```json\n{\n  \"identifier\": \"user@example.com\" hoặc \"+84901234567\",\n  \"code\": \"123456\",\n  \"newPassword\": \"newpassword123\"\n}\n```\n\n**Yêu cầu:**\n- `identifier`: Email hoặc số điện thoại (phải giống với lúc gửi OTP)\n- `code`: Mã OTP 6 chữ số (phải đúng và chưa hết hạn)\n- `newPassword`: Mật khẩu mới (tối thiểu 6 ký tự)\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Password reset successfully\",\n  \"data\": {\n    \"userId\": \"...\",\n    \"identifier\": \"user@example.com\"\n  }\n}\n```\n\n**Lỗi có thể gặp:**\n- `400`: Thiếu thông tin hoặc mật khẩu quá ngắn (< 6 ký tự)\n- `400`: OTP không hợp lệ hoặc đã hết hạn\n- `404`: Không tìm thấy user với identifier này\n- `400`: OTP đã được sử dụng (mỗi OTP chỉ dùng được 1 lần)"
+      }
+    },
+    {
+      "name": "Check Username Availability",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Response has available field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.data).to.have.property('available');",
+              "    pm.expect(jsonData.data.available).to.be.a('boolean');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/auth/check-username/:username",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "check-username",
+            ":username"
+          ],
+          "variable": [
+            {
+              "key": "username",
+              "value": "testuser",
+              "description": "Username cần kiểm tra"
+            }
+          ]
+        },
+        "description": "Kiểm tra username đã tồn tại trong hệ thống chưa.\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Username is available\" hoặc \"Username already exists\",\n  \"data\": {\n    \"available\": true hoặc false\n  }\n}\n```\n\n**Lưu ý:**\n- `available: true` - Username có thể sử dụng (chưa tồn tại)\n- `available: false` - Username đã tồn tại\n- Username sẽ được normalize (lowercase, trim) trước khi kiểm tra\n- Username phải có ít nhất 3 ký tự"
+      }
+    }
+  ]
+}
