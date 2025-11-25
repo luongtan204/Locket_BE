@@ -208,7 +208,26 @@ export const sendMessageHandler = asyncHandler(async (req: ChatRequest, res: Res
     return; // Đã response rồi, không cần return gì thêm
   }
 
-  // Nếu không phải bot conversation, response bình thường
+  // 🔴 BỔ SUNG LOGIC SOCKET CHO NGƯỜI THƯỜNG
+  const io = getSocketIOInstance();
+  if (io) {
+    const roomName = `conversation:${conversationId}`;
+    console.log(`[Human Chat] Emitting new_message to room: ${roomName}`);
+    
+    // Populate message để có đầy đủ thông tin trước khi emit
+    await message.populate('senderId', 'username displayName avatarUrl');
+    await message.populate('conversationId');
+    
+    io.to(roomName).emit('new_message', {
+      message: message.toObject()
+    });
+    
+    console.log(`[Human Chat] ✅ Socket event emitted successfully to room: ${roomName}`);
+  } else {
+    console.warn('[Human Chat] Socket.io instance not available');
+  }
+
+  // Response API (Giữ nguyên)
   return res.status(201).json(ok(message, 'Message sent successfully'));
 });
 
