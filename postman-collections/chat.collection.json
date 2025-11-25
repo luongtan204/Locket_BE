@@ -44,6 +44,12 @@
       "key": "refund_id",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "bot_id",
+      "value": "",
+      "type": "string",
+      "description": "Bot ID from environment variable BOT_ID"
     }
   ],
   "item": [
@@ -265,6 +271,182 @@
             }
           ]
         }
+      }
+    },
+    {
+      "name": "AI Bot - Create Conversation with Bot",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    var jsonData = pm.response.json();",
+              "    if (jsonData.data && jsonData.data._id) {",
+              "        pm.collectionVariables.set('conversation_id', jsonData.data._id);",
+              "        console.log('Conversation with Bot created:', jsonData.data._id);",
+              "    }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"otherUserId\": \"{{bot_id}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/chat/conversations",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "chat",
+            "conversations"
+          ]
+        },
+        "description": "Tạo hoặc lấy conversation với AI Bot. Cần set bot_id trong collection variables (từ env BOT_ID)."
+      }
+    },
+    {
+      "name": "AI Bot - Send Message to Bot",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Response has message data', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.data).to.have.property('_id');",
+              "    pm.expect(jsonData.data).to.have.property('content');",
+              "    pm.expect(jsonData.data.content).to.eql('Xin chào Bot! Bạn khỏe không?');",
+              "});",
+              "",
+              "console.log('User message sent. Bot response will come via Socket.io event.');",
+              "console.log('Note: Bot response is processed in background and sent via Socket.io new_message event.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"conversationId\": \"{{conversation_id}}\",\n  \"content\": \"Xin chào Bot! Bạn khỏe không?\",\n  \"type\": \"text\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/chat/messages",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "chat",
+            "messages"
+          ]
+        },
+        "description": "Gửi message cho AI Bot. Bot sẽ trả lời tự động qua Socket.io event 'new_message' trong background."
+      }
+    },
+    {
+      "name": "AI Bot - Send Multiple Messages (Test Context)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"conversationId\": \"{{conversation_id}}\",\n  \"content\": \"Hôm nay tôi cảm thấy hơi buồn\",\n  \"type\": \"text\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/chat/messages",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "chat",
+            "messages"
+          ]
+        },
+        "description": "Gửi message thứ 2 để test xem Bot có nhớ context từ message trước không."
+      }
+    },
+    {
+      "name": "AI Bot - Get Messages (Check Bot Response)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/chat/conversations/:conversationId/messages?page=1&limit=50",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "chat",
+            "conversations",
+            ":conversationId",
+            "messages"
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "50"
+            }
+          ],
+          "variable": [
+            {
+              "key": "conversationId",
+              "value": "{{conversation_id}}"
+            }
+          ]
+        },
+        "description": "Lấy danh sách messages để kiểm tra xem Bot đã trả lời chưa. Bot responses sẽ có senderId = bot_id."
       }
     }
   ]

@@ -143,7 +143,10 @@ class RefundService {
       }
 
       // Ghi nhận refund thành công vào revenue (chỉ khi APPROVED)
-      await recordRefundSucceeded(updatedRefund._id);
+      const refundObjectId = updatedRefund._id instanceof Types.ObjectId 
+        ? updatedRefund._id 
+        : new Types.ObjectId(String(updatedRefund._id));
+      await recordRefundSucceeded(refundObjectId);
 
       // TODO: Gọi API payment provider để thực hiện hoàn tiền thực tế
       // Ví dụ:
@@ -198,8 +201,19 @@ class RefundService {
     const skip = (page - 1) * limit;
     const [items, total] = await Promise.all([
       Refund.find(query)
-        .populate('userId', 'username displayName email')
-        .populate('invoiceId', 'amount currency status')
+        .populate('userId', 'username displayName email avatarUrl')
+        .populate({
+          path: 'invoiceId',
+          select: 'amount currency status grossAmount subscription',
+          populate: {
+            path: 'subscription',
+            select: 'plan status',
+            populate: {
+              path: 'plan',
+              select: 'name code price interval',
+            },
+          },
+        })
         .populate('processedByAdminId', 'username displayName')
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -208,8 +222,31 @@ class RefundService {
       Refund.countDocuments(query),
     ]);
 
+    // Transform items để đảm bảo format đúng
+    const transformedItems = items.map((item: any) => ({
+      ...item,
+      _id: item._id?.toString() || item._id,
+      userId: item.userId?._id?.toString() || item.userId?.toString() || item.userId,
+      invoiceId: item.invoiceId?._id?.toString() || item.invoiceId?.toString() || item.invoiceId,
+      user: item.userId && typeof item.userId === 'object' ? {
+        _id: item.userId._id?.toString() || item.userId._id,
+        username: item.userId.username,
+        displayName: item.userId.displayName,
+        email: item.userId.email,
+        avatarUrl: item.userId.avatarUrl,
+      } : undefined,
+      invoice: item.invoiceId && typeof item.invoiceId === 'object' ? {
+        _id: item.invoiceId._id?.toString() || item.invoiceId._id,
+        amount: item.invoiceId.amount || item.invoiceId.grossAmount,
+        currency: item.invoiceId.currency,
+        status: item.invoiceId.status,
+        planName: item.invoiceId.subscription?.plan?.name || 'N/A',
+        subscriptionId: item.invoiceId.subscription?._id?.toString() || item.invoiceId.subscription?._id || item.invoiceId.subscription,
+      } : undefined,
+    }));
+
     return {
-      items,
+      items: transformedItems,
       pagination: {
         page,
         limit,

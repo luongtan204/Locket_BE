@@ -8,6 +8,19 @@ import { BillingInterval } from '../models/plan.model';
 
 class AdminPlanController {
   /**
+   * Lấy danh sách tất cả Plans cho Admin
+   * GET /api/admin/plans
+   */
+  async getPlans(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const plans = await planService.getAllPlans();
+      res.json(ok({ plans }, 'Plans retrieved successfully'));
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Tạo Plan mới
    * POST /api/v1/admin/plans
    * Body: {

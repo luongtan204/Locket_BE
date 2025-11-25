@@ -121,6 +121,97 @@ export class GroqService {
   isAvailable(): boolean {
     return !!this.apiKey;
   }
+
+  /**
+   * Tạo response từ AI Bot (AI Friend)
+   * @param userMessage - Tin nhắn mới nhất của user
+   * @param history - Lịch sử chat (mảng messages, mới nhất trước)
+   * @returns Text response từ AI
+   */
+  async generateBotResponse(userMessage: string, history: any[] = []): Promise<string> {
+    if (!this.apiKey) {
+      throw new Error('GROQ_API_KEY is not configured');
+    }
+
+    try {
+      // Xây dựng messages array cho Groq API
+      const messages: any[] = [];
+
+      // System message - đóng vai AI Friend
+      messages.push({
+        role: 'system',
+        content: 'Bạn là một người bạn thân thiết, vui tính trên app Locket. ' +
+          'Bạn hay dùng teencode, tiếng lóng Gen Z, và emoji một cách tự nhiên. ' +
+          'Phong cách nói chuyện: Thân thiện, hài hước, đôi khi hơi "bựa" nhưng không quá đà. ' +
+          'Trả lời ngắn gọn (dưới 50 từ), tự nhiên như đang chat với bạn thân. ' +
+          'Dùng emoji phù hợp nhưng không quá nhiều (1-2 emoji mỗi câu). ' +
+          'Tuyệt đối không dùng văn mẫu hay triết lý sáo rỗng.',
+      });
+
+      // Thêm lịch sử chat (nếu có) - đảo ngược để từ cũ đến mới
+      if (history && history.length > 0) {
+        // Chỉ lấy 10 messages gần nhất để không quá dài
+        const recentHistory = history.slice(0, 10).reverse();
+        
+        for (const msg of recentHistory) {
+          // Bỏ qua message hiện tại (userMessage)
+          if (msg.content === userMessage) continue;
+          
+          // Xác định role: 'user' hoặc 'assistant' (bot)
+          const role = msg.senderId?.toString() === env.BOT_ID ? 'assistant' : 'user';
+          messages.push({
+            role,
+            content: msg.content || '',
+          });
+        }
+      }
+
+      // Thêm user message mới nhất
+      messages.push({
+        role: 'user',
+        content: userMessage,
+      });
+
+      // Gọi Groq API
+      // Sử dụng model mới nhất (llama-3.3-70b-versatile thay thế llama-3.1-70b-versatile đã bị decommissioned)
+      // Nếu model này không hoạt động, có thể thử: 'llama-3.1-8b-instant' hoặc 'mixtral-8x7b-32768'
+      const response = await fetch(this.apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile', // Model mới nhất của Groq
+          messages,
+          max_tokens: 200,
+          temperature: 0.8, // Tăng temperature để response tự nhiên hơn
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[Groq] API Error:', response.status, errorText);
+        throw new Error(`Groq API error: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+
+      // Lấy response từ AI
+      const botResponse = data.choices?.[0]?.message?.content?.trim();
+
+      if (!botResponse) {
+        throw new Error('No response generated from Groq API');
+      }
+
+      return botResponse;
+    } catch (error) {
+      console.error('[Groq] Error generating bot response:', error);
+      throw error instanceof Error
+        ? error
+        : new Error('Failed to generate bot response');
+    }
+  }
 }
 
 // Export singleton instance

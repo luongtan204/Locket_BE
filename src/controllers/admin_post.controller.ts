@@ -5,6 +5,19 @@ import { auditService } from '../services/audit.service';
 import { ApiError, ok } from '../utils/apiResponse';
 
 class AdminPostController {
+  async getPosts(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { page, limit } = req.query;
+      const result = await adminPostService.getPosts({
+        page: page ? parseInt(page as string, 10) : undefined,
+        limit: limit ? parseInt(limit as string, 10) : undefined,
+      });
+      res.json(ok(result, 'Posts retrieved successfully'));
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async deletePost(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { postId } = req.params;

@@ -3,6 +3,7 @@ import { Conversation, IConversation } from '../models/conversation.model';
 import { Message, IMessage, MessageType } from '../models/message.model';
 import { Friendship } from '../models/friendship.model';
 import { ApiError } from '../utils/apiResponse';
+import { env } from '../config/env';
 
 /**
  * Kiểm tra xem hai user có phải là bạn bè không
@@ -34,10 +35,15 @@ export async function findOrCreateConversation(userId1: string, userId2: string)
     throw new ApiError(400, 'Cannot create conversation with yourself');
   }
 
-  // Kiểm tra friendship
-  const isFriend = await areFriends(userId1, userId2);
-  if (!isFriend) {
-    throw new ApiError(403, 'Users must be friends to start a conversation');
+  // Bỏ qua kiểm tra friendship nếu một trong hai user là Bot
+  const isBotConversation = userId1 === env.BOT_ID || userId2 === env.BOT_ID;
+  
+  if (!isBotConversation) {
+    // Kiểm tra friendship chỉ khi không phải chat với Bot
+    const isFriend = await areFriends(userId1, userId2);
+    if (!isFriend) {
+      throw new ApiError(403, 'Users must be friends to start a conversation');
+    }
   }
 
   // Sắp xếp participants theo thứ tự để đảm bảo unique
@@ -84,7 +90,7 @@ export async function createMessage(
     throw new ApiError(403, 'You are not a participant of this conversation');
   }
 
-  // Kiểm tra friendship giữa sender và người còn lại
+  // Kiểm tra friendship giữa sender và người còn lại (bỏ qua nếu là Bot)
   const otherParticipant = conversation.participants.find(
     (p) => p.toString() !== senderId
   );
@@ -92,9 +98,14 @@ export async function createMessage(
     throw new ApiError(400, 'Invalid conversation participants');
   }
 
-  const isFriend = await areFriends(senderId, otherParticipant.toString());
-  if (!isFriend) {
-    throw new ApiError(403, 'Users must be friends to send messages');
+  const isBotConversation = senderId === env.BOT_ID || otherParticipant.toString() === env.BOT_ID;
+  
+  if (!isBotConversation) {
+    // Chỉ kiểm tra friendship khi không phải chat với Bot
+    const isFriend = await areFriends(senderId, otherParticipant.toString());
+    if (!isFriend) {
+      throw new ApiError(403, 'Users must be friends to send messages');
+    }
   }
 
   // Tạo message
@@ -205,6 +216,25 @@ export async function getMessages(conversationId: string, userId: string, page: 
       totalPages: Math.ceil(total / limit),
     },
   };
+}
+
+/**
+ * Lấy lịch sử chat gần đây để làm context cho AI (không có pagination, chỉ lấy N messages cuối)
+ * @param conversationId - ID của conversation
+ * @param limit - Số lượng messages cần lấy (mặc định 15)
+ * @returns Mảng messages (từ cũ đến mới)
+ */
+export async function getRecentMessages(conversationId: string, limit: number = 15): Promise<IMessage[]> {
+  const messages = await Message.find({
+    conversationId: new Types.ObjectId(conversationId),
+  })
+    .populate('senderId', 'username displayName avatarUrl')
+    .sort({ createdAt: -1 }) // Mới nhất trước
+    .limit(limit)
+    .lean();
+
+  // Đảo ngược để từ cũ đến mới (cho AI context)
+  return messages.reverse();
 }
 
 /**

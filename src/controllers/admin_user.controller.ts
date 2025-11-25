@@ -5,6 +5,20 @@ import { auditService } from '../services/audit.service';
 import { ApiError, ok } from '../utils/apiResponse';
 
 class AdminUserController {
+  async getUsers(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { page, limit, search } = req.query;
+      const result = await adminUserService.getUsers({
+        page: page ? parseInt(page as string, 10) : undefined,
+        limit: limit ? parseInt(limit as string, 10) : undefined,
+        search: search as string,
+      });
+      res.json(ok(result, 'Users retrieved successfully'));
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async banUser(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { userId } = req.params;

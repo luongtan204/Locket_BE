@@ -11,6 +11,7 @@ import planRoutes from './plan.routes';
 import subscriptionRoutes from './subscription.routes';
 import refundRoutes from './refund.routes';
 import inviteApiRoutes from './invite-api.routes';
+import cleanupRoutes from './cleanup.routes';
 
 const router = Router();
 
@@ -27,5 +28,6 @@ router.use('/subscriptions', subscriptionRoutes);
 router.use('/refunds', refundRoutes);
 router.use('/admin', adminRoutes);
 router.use('/invites', inviteApiRoutes);
+router.use('/cleanup', cleanupRoutes);
 
 export default router;

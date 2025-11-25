@@ -67,6 +67,17 @@ class PlanService {
   }
 
   /**
+   * Lấy tất cả Plans cho Admin (bao gồm cả inactive)
+   * @returns Danh sách tất cả plans với đầy đủ thông tin
+   */
+  async getAllPlans() {
+    const plans = await Plan.find({})
+      .sort({ createdAt: -1 })
+      .lean();
+    return plans;
+  }
+
+  /**
    * Cập nhật Plan
    * @param planId - ID của Plan cần cập nhật
    * @param updateData - Dữ liệu cần cập nhật

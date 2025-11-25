@@ -20,6 +20,8 @@ export const env = {
   NSFW_ENABLED: process.env.NSFW_ENABLED !== 'false', // Default: true, set to 'false' to disable
   // Groq API config (for caption suggestion)
   GROQ_API_KEY: process.env.GROQ_API_KEY || '',
+  // AI Bot config
+  BOT_ID: process.env.BOT_ID || '',
   // Firebase Admin config (for push notifications)
   FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID || '',
   FIREBASE_PRIVATE_KEY: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n') || '',
@@ -28,3 +30,14 @@ export const env = {
 
 // eslint-disable-next-line no-console
 console.log(`ENV: NODE_ENV=${env.NODE_ENV} PORT=${env.PORT}`);
+// Log Bot config
+if (env.BOT_ID) {
+  console.log(`[Bot] BOT_ID configured: ${env.BOT_ID}`);
+} else {
+  console.warn('[Bot] BOT_ID not configured in environment variables');
+}
+if (env.GROQ_API_KEY) {
+  console.log('[Bot] GROQ_API_KEY configured');
+} else {
+  console.warn('[Bot] GROQ_API_KEY not configured - AI Bot will be disabled');
+}

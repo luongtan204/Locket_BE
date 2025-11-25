@@ -8,6 +8,19 @@ import { AdPlacement } from '../models/ad.model';
 
 class AdminAdController {
   /**
+   * Lấy danh sách tất cả quảng cáo
+   * GET /api/admin/ads
+   */
+  async getAds(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const ads = await adService.getAllAds();
+      res.json(ok({ ads }, 'Ads retrieved successfully'));
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Tạo quảng cáo mới
    * POST /api/v1/admin/ads
    * Body: {
@@ -131,6 +144,72 @@ class AdminAdController {
       );
 
       res.status(201).json(ok({ ad: newAd }, 'Ad created successfully'));
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Cập nhật toàn bộ thông tin quảng cáo
+   * PUT /api/v1/admin/ads/:adId
+   * Body: {
+   *   name?: string,
+   *   placement?: 'feed' | 'splash' | 'banner',
+   *   imageUrl?: string,
+   *   title?: string,
+   *   description?: string,
+   *   ctaText?: string,
+   *   ctaUrl?: string,
+   *   targetUrl?: string, // Alias for ctaUrl
+   *   priority?: number,
+   *   isActive?: boolean,
+   *   status?: 'ACTIVE' | 'PAUSED', // Map to isActive
+   *   startAt?: Date | null,
+   *   endAt?: Date | null
+   * }
+   */
+  async updateAd(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { adId } = req.params;
+      const actingUserId = req.user?._id?.toString();
+
+      if (!actingUserId) {
+        return next(new ApiError(401, 'Missing admin context'));
+      }
+
+      // Lấy quảng cáo hiện tại để log audit (trước khi update)
+      const currentAd = await Ad.findById(adId).lean();
+      if (!currentAd) {
+        return next(new ApiError(404, 'Ad not found'));
+      }
+
+      // Cập nhật quảng cáo
+      const updatedAd = await adService.updateAd(adId, req.body, actingUserId);
+
+      // Ghi log audit sau khi cập nhật thành công
+      await auditService.logAdminAction(
+        actingUserId,
+        'UPDATE',
+        'AD',
+        adId,
+        {
+          description: `Update ad: ${updatedAd.name}`,
+          before: {
+            name: currentAd.name,
+            placement: currentAd.placement,
+            isActive: currentAd.isActive,
+            priority: currentAd.priority,
+          },
+          after: {
+            name: updatedAd.name,
+            placement: updatedAd.placement,
+            isActive: updatedAd.isActive,
+            priority: updatedAd.priority,
+          },
+        }
+      );
+
+      res.json(ok({ ad: updatedAd }, 'Ad updated successfully'));
     } catch (error) {
       next(error);
     }

@@ -1,5 +1,6 @@
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 import { env } from '../config/env';
 import { User } from '../models/user.model';
 import { createMessage, findOrCreateConversation } from './chat.service';
@@ -85,7 +86,7 @@ export function initializeSocketIO(io: SocketIOServer) {
 
     /**
      * Event: join_room
-     * Client gửi: { conversationId: string }
+     * Client gửi: { conversationId: string } (có thể là "ID" hoặc "conversation:ID")
      * Server sẽ join user vào room của conversation đó
      */
     socket.on('join_room', async (data: { conversationId: string }) => {
@@ -97,13 +98,27 @@ export function initializeSocketIO(io: SocketIOServer) {
           return;
         }
 
-        // Kiểm tra conversation tồn tại và user là participant
-        const conversation = await Conversation.findById(conversationId);
+        // 1. Chuẩn hóa dữ liệu: Tách lấy raw ID và room name
+        const rawId = conversationId.replace(/^conversation:/, '');
+        const roomName = conversationId.startsWith('conversation:')
+          ? conversationId
+          : `conversation:${conversationId}`;
+
+        // 2. Validate raw ID trước khi query DB (QUAN TRỌNG)
+        if (!mongoose.Types.ObjectId.isValid(rawId)) {
+          socket.emit('error', { message: 'Invalid conversation ID format' });
+          console.error(`[Socket] Invalid conversationId format: ${conversationId} (rawId: ${rawId})`);
+          return;
+        }
+
+        // 3. Query DB (Dùng Raw ID - QUAN TRỌNG)
+        const conversation = await Conversation.findById(rawId);
         if (!conversation) {
           socket.emit('error', { message: 'Conversation not found' });
           return;
         }
 
+        // 4. Kiểm tra quyền: User phải là participant
         const isParticipant = conversation.participants.some(
           (p) => p.toString() === userId
         );
@@ -113,11 +128,11 @@ export function initializeSocketIO(io: SocketIOServer) {
           return;
         }
 
-        // Join vào room của conversation
-        socket.join(`conversation:${conversationId}`);
-        console.log(`[Socket] User ${userId} joined conversation:${conversationId}`);
+        // 5. Join Room (Dùng Room Name với prefix conversation:)
+        socket.join(roomName);
+        console.log(`[Socket] User ${userId} joined room: ${roomName} (conversationId: ${rawId})`);
 
-        socket.emit('joined_room', { conversationId });
+        socket.emit('joined_room', { conversationId: rawId });
       } catch (error: any) {
         console.error('[Socket] Error in join_room:', error);
         socket.emit('error', { message: error.message || 'Failed to join room' });
@@ -140,24 +155,30 @@ export function initializeSocketIO(io: SocketIOServer) {
           return;
         }
 
-        // Tạo message trong database
-        const message = await createMessage(conversationId, userId, content, type);
+        // Phân tách ID: Tách lấy raw ID (để query DB) và room name (để socket emit)
+        const rawId = conversationId.replace(/^conversation:/, '');
+        const roomName = conversationId.startsWith('conversation:')
+          ? conversationId
+          : `conversation:${conversationId}`;
+
+        // Tạo message trong database (dùng rawId)
+        const message = await createMessage(rawId, userId, content, type);
 
         // Populate để có đầy đủ thông tin
         await message.populate('senderId', 'username displayName avatarUrl');
         await message.populate('conversationId');
 
-        // Broadcast message đến tất cả clients trong room của conversation
-        io.to(`conversation:${conversationId}`).emit('new_message', {
+        // Broadcast message đến tất cả clients trong room của conversation (dùng roomName)
+        io.to(roomName).emit('new_message', {
           message: message.toObject(),
         });
 
-        console.log(`[Socket] Message sent in conversation:${conversationId} by user:${userId}`);
+        console.log(`[Socket] Message sent in room: ${roomName} (conversationId: ${rawId}) by user:${userId}`);
 
         // Gửi confirmation về cho sender
         socket.emit('message_sent', {
           messageId: message._id,
-          conversationId,
+          conversationId: rawId,
         });
       } catch (error: any) {
         console.error('[Socket] Error in send_message:', error);
@@ -167,15 +188,21 @@ export function initializeSocketIO(io: SocketIOServer) {
 
     /**
      * Event: typing_start
-     * Client gửi: { conversationId: string }
+     * Client gửi: { conversationId: string } (có thể là "ID" hoặc "conversation:ID")
      * Server sẽ broadcast đến các user khác trong conversation
      */
     socket.on('typing_start', (data: { conversationId: string }) => {
       const { conversationId } = data;
       if (conversationId) {
-        // Broadcast đến tất cả clients trong room trừ chính user đó
-        socket.to(`conversation:${conversationId}`).emit('user_typing', {
-          conversationId,
+        // Phân tách ID: Tách lấy raw ID và room name
+        const rawId = conversationId.replace(/^conversation:/, '');
+        const roomName = conversationId.startsWith('conversation:')
+          ? conversationId
+          : `conversation:${conversationId}`;
+
+        // Broadcast đến tất cả clients trong room trừ chính user đó (dùng roomName)
+        socket.to(roomName).emit('user_typing', {
+          conversationId: rawId, // Trả về rawId cho client
           userId,
           isTyping: true,
         });
@@ -184,14 +211,20 @@ export function initializeSocketIO(io: SocketIOServer) {
 
     /**
      * Event: typing_stop
-     * Client gửi: { conversationId: string }
+     * Client gửi: { conversationId: string } (có thể là "ID" hoặc "conversation:ID")
      * Server sẽ broadcast đến các user khác trong conversation
      */
     socket.on('typing_stop', (data: { conversationId: string }) => {
       const { conversationId } = data;
       if (conversationId) {
-        socket.to(`conversation:${conversationId}`).emit('user_typing', {
-          conversationId,
+        // Phân tách ID: Tách lấy raw ID và room name
+        const rawId = conversationId.replace(/^conversation:/, '');
+        const roomName = conversationId.startsWith('conversation:')
+          ? conversationId
+          : `conversation:${conversationId}`;
+
+        socket.to(roomName).emit('user_typing', {
+          conversationId: rawId, // Trả về rawId cho client
           userId,
           isTyping: false,
         });
@@ -212,12 +245,15 @@ export function initializeSocketIO(io: SocketIOServer) {
           return;
         }
 
+        // Phân tách ID: Tách lấy raw ID (để query DB)
+        const rawId = conversationId.replace(/^conversation:/, '');
+
         // Nếu có messageIds cụ thể, chỉ đánh dấu những message đó
         if (messageIds && messageIds.length > 0) {
           await Message.updateMany(
             {
               _id: { $in: messageIds },
-              conversationId: conversationId,
+              conversationId: rawId, // Dùng rawId để query DB
               senderId: { $ne: userId },
               isRead: false,
             },
@@ -226,10 +262,10 @@ export function initializeSocketIO(io: SocketIOServer) {
             }
           );
         } else {
-          // Đánh dấu tất cả messages chưa đọc trong conversation
+          // Đánh dấu tất cả messages chưa đọc trong conversation (dùng rawId)
           await Message.updateMany(
             {
-              conversationId: conversationId,
+              conversationId: rawId, // Dùng rawId để query DB
               senderId: { $ne: userId },
               isRead: false,
             },
@@ -239,9 +275,14 @@ export function initializeSocketIO(io: SocketIOServer) {
           );
         }
 
-        // Broadcast đến conversation room
-        io.to(`conversation:${conversationId}`).emit('messages_read', {
-          conversationId,
+        // Phân tách room name để broadcast
+        const roomName = conversationId.startsWith('conversation:')
+          ? conversationId
+          : `conversation:${conversationId}`;
+
+        // Broadcast đến conversation room (dùng roomName)
+        io.to(roomName).emit('messages_read', {
+          conversationId: rawId, // Trả về rawId cho client
           userId,
         });
       } catch (error: any) {

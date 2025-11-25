@@ -32,8 +32,8 @@ class AdEventService {
     const end = new Date(endDate);
     end.setHours(23, 59, 59, 999);
 
-    // Truy vấn tổng số impression
-    const impressionCount = await AdEvent.countDocuments({
+    // Truy vấn tổng số impression từ AdEvent collection
+    const impressionCountFromEvents = await AdEvent.countDocuments({
       ad: new Types.ObjectId(adId),
       type: 'impression',
       at: {
@@ -42,8 +42,8 @@ class AdEventService {
       },
     });
 
-    // Truy vấn tổng số click
-    const clickCount = await AdEvent.countDocuments({
+    // Truy vấn tổng số click từ AdEvent collection
+    const clickCountFromEvents = await AdEvent.countDocuments({
       ad: new Types.ObjectId(adId),
       type: 'click',
       at: {
@@ -52,11 +52,29 @@ class AdEventService {
       },
     });
 
+    // Nếu không có events trong date range, fallback về counters từ Ad model
+    // Vì có thể các events được track trực tiếp vào Ad model (trackAdImpression/trackAdClick)
+    let impressionCount = impressionCountFromEvents;
+    let clickCount = clickCountFromEvents;
+
+    // Nếu không có events trong AdEvent collection, sử dụng counters từ Ad model
+    // Đây là fallback cho trường hợp tracking trực tiếp vào Ad model mà không tạo AdEvent records
+    if (impressionCountFromEvents === 0 && clickCountFromEvents === 0) {
+      // Kiểm tra xem Ad model có counters không
+      if (ad.impressionCount > 0 || ad.clickCount > 0) {
+        // Sử dụng counters từ Ad model
+        // Lưu ý: Đây là tổng tất cả thời gian, không phải chỉ trong date range
+        // Nhưng vì không có AdEvent records, đây là dữ liệu tốt nhất có thể
+        impressionCount = ad.impressionCount || 0;
+        clickCount = ad.clickCount || 0;
+      }
+    }
+
     // Tính CTR (Click-Through Rate) = (Clicks / Impressions) * 100
     const ctr = impressionCount > 0 ? (clickCount / impressionCount) * 100 : 0;
 
-    // Lấy chi tiết theo ngày
-    const dailyStats = await AdEvent.aggregate([
+    // Lấy chi tiết theo ngày từ AdEvent collection
+    let dailyStats = await AdEvent.aggregate([
       {
         $match: {
           ad: new Types.ObjectId(adId),
@@ -98,6 +116,21 @@ class AdEventService {
         $sort: { day: 1 },
       },
     ]);
+
+    // Nếu không có daily stats từ events nhưng có tổng từ Ad model
+    // Tạo một entry tổng hợp cho ngày hiện tại hoặc ngày đầu tiên trong range
+    if (dailyStats.length === 0 && impressionCount > 0) {
+      // Tạo một entry tổng hợp
+      const today = new Date().toISOString().slice(0, 10);
+      dailyStats = [
+        {
+          day: today,
+          impressions: impressionCount,
+          clicks: clickCount,
+          ctr: ctr,
+        },
+      ];
+    }
 
     return {
       ad: {

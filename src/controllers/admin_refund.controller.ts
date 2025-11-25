@@ -7,6 +7,19 @@ import { ApiError, ok } from '../utils/apiResponse';
 
 class AdminRefundController {
   /**
+   * Lấy danh sách pending refunds
+   * GET /api/admin/refunds/pending
+   */
+  async getPendingRefunds(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const result = await refundService.getRefunds({ status: 'PENDING' }, 1, 100);
+      res.json(ok({ refunds: result.items }, 'Pending refunds retrieved successfully'));
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Xử lý refund: phê duyệt hoặc từ chối
    * PUT /api/admin/refunds/:refundId/process
    * Body: {

@@ -6,11 +6,16 @@ import {
   createMessage,
   findOrCreateConversation,
   markMessagesAsRead,
+  getRecentMessages,
 } from '../services/chat.service';
 import { ok, ApiError } from '../utils/apiResponse';
 import { asyncHandler } from '../utils/asyncHandler';
 import { uploadToCloudinary } from '../utils/cloudinary';
+import { groqService } from '../services/groq.service';
 import { getSocketIOInstance } from '../services/socket.service';
+import { env } from '../config/env';
+import { Conversation } from '../models/conversation.model';
+import { Types } from 'mongoose';
 
 // Định nghĩa type cho Multer file
 interface MulterFile {
@@ -116,75 +121,94 @@ export const sendMessageHandler = asyncHandler(async (req: ChatRequest, res: Res
     throw new ApiError(400, 'content is required');
   }
 
-  // Tạo message (đã được populate senderId và conversationId trong service)
+  // Tạo message
   const message = await createMessage(conversationId, req.userId, messageContent, messageType);
 
-  // Bắn tín hiệu Socket.IO để gửi message real-time
-  const io = getSocketIOInstance();
-  
-  // DEBUG: Log conversationId để kiểm tra type
-  console.log('[Chat Controller] ========== DEBUG SOCKET EMIT ==========');
-  console.log('[Chat Controller] conversationId:', conversationId);
-  console.log('[Chat Controller] conversationId type:', typeof conversationId);
-  console.log('[Chat Controller] conversationId is ObjectId?', conversationId instanceof Object);
-  
-  if (io) {
-    console.log('[Chat Controller] Socket.IO instance found, bắt đầu emit...');
-    
-    // Convert message sang plain object để emit
-    const messageObj = (message as any).toObject ? (message as any).toObject() : message;
-    
-    // DEBUG: Log dữ liệu message đang được gửi
-    console.log('[Chat Controller] Message object:', JSON.stringify(messageObj, null, 2));
-    console.log('[Chat Controller] Message senderId:', messageObj.senderId);
-    console.log('[Chat Controller] Message senderId type:', typeof messageObj.senderId);
-    console.log('[Chat Controller] Message senderId._id:', messageObj.senderId?._id);
-    console.log('[Chat Controller] Message conversationId:', messageObj.conversationId);
-    
-    // Tạo room name
-    const conversationRoom = `conversation:${conversationId}`;
-    console.log('[Chat Controller] Emitting to conversation room:', conversationRoom);
-    
-    // Broadcast message đến tất cả clients trong room của conversation
-    io.to(conversationRoom).emit('new_message', {
-      message: messageObj,
-    });
-    
-    console.log('[Chat Controller] ✅ Emit thành công đến conversation room:', conversationRoom);
-    
-    // Cũng gửi đến user room của người nhận (nếu họ không ở trong conversation room)
-    // Lấy participants từ conversation (đã được populate trong createMessage)
-    const conversationObj = (message as any).conversationId;
-    console.log('[Chat Controller] Conversation object:', conversationObj);
-    
-    if (conversationObj && conversationObj.participants) {
-      console.log('[Chat Controller] Participants:', conversationObj.participants);
-      const otherParticipant = conversationObj.participants.find(
-        (p: any) => p.toString() !== req.userId
-      );
-      console.log('[Chat Controller] Other participant:', otherParticipant);
-      
-      if (otherParticipant) {
-        const userRoom = `user:${otherParticipant.toString()}`;
-        console.log('[Chat Controller] Emitting to user room:', userRoom);
-        io.to(userRoom).emit('new_message', {
-          message: messageObj,
-        });
-        console.log('[Chat Controller] ✅ Emit thành công đến user room:', userRoom);
-      } else {
-        console.log('[Chat Controller] ⚠️ Không tìm thấy other participant');
-      }
-    } else {
-      console.log('[Chat Controller] ⚠️ Conversation object hoặc participants không tồn tại');
-    }
-    
-    console.log(`[Chat Controller] Message sent via Socket.IO in conversation:${conversationId} by user:${req.userId}`);
-    console.log('[Chat Controller] ========== END DEBUG ==========');
-  } else {
-    console.warn('[Chat Controller] ⚠️ Socket.IO instance not available, message saved but not broadcasted');
-    console.log('[Chat Controller] ========== END DEBUG ==========');
+  // Kiểm tra nếu đây là conversation với Bot
+  const conversation = await Conversation.findById(conversationId);
+  if (!conversation) {
+    throw new ApiError(404, 'Conversation not found');
   }
 
+  // Debug: Log để kiểm tra
+  const participantIds = conversation.participants.map((p) => {
+    // Đảm bảo convert đúng sang string
+    const id = p instanceof Types.ObjectId ? p.toString() : String(p);
+    return id;
+  });
+  
+  // So sánh BOT_ID (có thể là string hoặc ObjectId)
+  const botIdString = env.BOT_ID ? String(env.BOT_ID).trim() : '';
+  const isBotConversation = botIdString && participantIds.some((id) => id === botIdString);
+  
+  console.log('[AI Bot] Checking bot conversation:', {
+    conversationId,
+    participants: participantIds,
+    botId: botIdString,
+    isBotConversation,
+    messageType,
+    groqAvailable: groqService.isAvailable(),
+  });
+
+  // Nếu là chat với Bot, xử lý AI response trong background
+  if (isBotConversation && messageType === 'text' && groqService.isAvailable()) {
+    console.log('[AI Bot] Processing bot response in background...');
+    // Response ngay cho client (không chờ AI)
+    res.status(201).json(ok(message, 'Message sent successfully'));
+
+    // Xử lý AI response trong background (async, không await)
+    (async () => {
+      try {
+        console.log('[AI Bot] Starting bot response generation...');
+        
+        // Lấy lịch sử chat gần đây để làm context
+        const history = await getRecentMessages(conversationId, 15);
+        console.log('[AI Bot] Chat history loaded:', history.length, 'messages');
+
+        // Gọi AI để generate response
+        console.log('[AI Bot] Calling Groq API...');
+        const botResponse = await groqService.generateBotResponse(messageContent, history);
+        console.log('[AI Bot] Bot response generated:', botResponse.substring(0, 50) + '...');
+
+        // Tạo message mới từ Bot
+        const botMessage = await createMessage(
+          conversationId,
+          env.BOT_ID,
+          botResponse,
+          'text'
+        );
+        console.log('[AI Bot] Bot message created:', botMessage._id);
+
+        // Populate để có đầy đủ thông tin
+        await botMessage.populate('senderId', 'username displayName avatarUrl');
+        await botMessage.populate('conversationId');
+
+        // Emit socket event để client nhận được message từ Bot
+        const io = getSocketIOInstance();
+        if (io) {
+          const roomName = `conversation:${conversationId}`;
+          io.to(roomName).emit('new_message', {
+            message: botMessage.toObject(),
+          });
+          console.log(`[AI Bot] Socket event emitted to room: ${roomName}`);
+        } else {
+          console.warn('[AI Bot] Socket.io instance not available');
+        }
+        
+        console.log('[AI Bot] Bot response completed successfully');
+      } catch (error) {
+        console.error('[AI Bot] Error generating response:', error);
+        if (error instanceof Error) {
+          console.error('[AI Bot] Error details:', error.message, error.stack);
+        }
+        // Không throw error để không ảnh hưởng đến response đã gửi cho client
+      }
+    })();
+
+    return; // Đã response rồi, không cần return gì thêm
+  }
+
+  // Nếu không phải bot conversation, response bình thường
   return res.status(201).json(ok(message, 'Message sent successfully'));
 });
 
