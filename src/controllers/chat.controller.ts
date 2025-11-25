@@ -10,6 +10,7 @@ import {
 import { ok, ApiError } from '../utils/apiResponse';
 import { asyncHandler } from '../utils/asyncHandler';
 import { uploadToCloudinary } from '../utils/cloudinary';
+import { getSocketIOInstance } from '../services/socket.service';
 
 // Định nghĩa type cho Multer file
 interface MulterFile {
@@ -115,8 +116,74 @@ export const sendMessageHandler = asyncHandler(async (req: ChatRequest, res: Res
     throw new ApiError(400, 'content is required');
   }
 
-  // Tạo message
+  // Tạo message (đã được populate senderId và conversationId trong service)
   const message = await createMessage(conversationId, req.userId, messageContent, messageType);
+
+  // Bắn tín hiệu Socket.IO để gửi message real-time
+  const io = getSocketIOInstance();
+  
+  // DEBUG: Log conversationId để kiểm tra type
+  console.log('[Chat Controller] ========== DEBUG SOCKET EMIT ==========');
+  console.log('[Chat Controller] conversationId:', conversationId);
+  console.log('[Chat Controller] conversationId type:', typeof conversationId);
+  console.log('[Chat Controller] conversationId is ObjectId?', conversationId instanceof Object);
+  
+  if (io) {
+    console.log('[Chat Controller] Socket.IO instance found, bắt đầu emit...');
+    
+    // Convert message sang plain object để emit
+    const messageObj = (message as any).toObject ? (message as any).toObject() : message;
+    
+    // DEBUG: Log dữ liệu message đang được gửi
+    console.log('[Chat Controller] Message object:', JSON.stringify(messageObj, null, 2));
+    console.log('[Chat Controller] Message senderId:', messageObj.senderId);
+    console.log('[Chat Controller] Message senderId type:', typeof messageObj.senderId);
+    console.log('[Chat Controller] Message senderId._id:', messageObj.senderId?._id);
+    console.log('[Chat Controller] Message conversationId:', messageObj.conversationId);
+    
+    // Tạo room name
+    const conversationRoom = `conversation:${conversationId}`;
+    console.log('[Chat Controller] Emitting to conversation room:', conversationRoom);
+    
+    // Broadcast message đến tất cả clients trong room của conversation
+    io.to(conversationRoom).emit('new_message', {
+      message: messageObj,
+    });
+    
+    console.log('[Chat Controller] ✅ Emit thành công đến conversation room:', conversationRoom);
+    
+    // Cũng gửi đến user room của người nhận (nếu họ không ở trong conversation room)
+    // Lấy participants từ conversation (đã được populate trong createMessage)
+    const conversationObj = (message as any).conversationId;
+    console.log('[Chat Controller] Conversation object:', conversationObj);
+    
+    if (conversationObj && conversationObj.participants) {
+      console.log('[Chat Controller] Participants:', conversationObj.participants);
+      const otherParticipant = conversationObj.participants.find(
+        (p: any) => p.toString() !== req.userId
+      );
+      console.log('[Chat Controller] Other participant:', otherParticipant);
+      
+      if (otherParticipant) {
+        const userRoom = `user:${otherParticipant.toString()}`;
+        console.log('[Chat Controller] Emitting to user room:', userRoom);
+        io.to(userRoom).emit('new_message', {
+          message: messageObj,
+        });
+        console.log('[Chat Controller] ✅ Emit thành công đến user room:', userRoom);
+      } else {
+        console.log('[Chat Controller] ⚠️ Không tìm thấy other participant');
+      }
+    } else {
+      console.log('[Chat Controller] ⚠️ Conversation object hoặc participants không tồn tại');
+    }
+    
+    console.log(`[Chat Controller] Message sent via Socket.IO in conversation:${conversationId} by user:${req.userId}`);
+    console.log('[Chat Controller] ========== END DEBUG ==========');
+  } else {
+    console.warn('[Chat Controller] ⚠️ Socket.IO instance not available, message saved but not broadcasted');
+    console.log('[Chat Controller] ========== END DEBUG ==========');
+  }
 
   return res.status(201).json(ok(message, 'Message sent successfully'));
 });
