@@ -109,15 +109,15 @@ export class FeedService {
         const activeAds = await this.getActiveAds('feed');
 
         if (activeAds.length > 0) {
-          // Chèn quảng cáo này vào mảng kết quả của Feed: Cứ sau 20 bài viết thì chèn 1 quảng cáo
-          const adInterval = 20; // Cứ sau 20 posts thì chèn 1 ad
+          // Chèn quảng cáo này vào mảng kết quả của Feed: Cứ sau 5 bài viết thì chèn 1 quảng cáo
+          const adInterval = 5; // Cứ sau 5 posts thì chèn 1 ad
           const result: FeedItem[] = [];
           let adIndex = 0;
 
           for (let i = 0; i < feedItems.length; i++) {
             result.push(feedItems[i]);
 
-            // Chèn ad sau mỗi 20 posts (index 19, 39, 59, ...)
+            // Chèn ad sau mỗi 5 posts (index 4, 9, 14, 19, ...)
             if ((i + 1) % adInterval === 0 && adIndex < activeAds.length) {
               const ad = activeAds[adIndex % activeAds.length];
               result.push({
