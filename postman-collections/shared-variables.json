@@ -1,7 +1,7 @@
 [
   {
     "key": "base_url",
-    "value": "http://localhost:4000",
+    "value": "https://locket-be-z695.onrender.com",
     "type": "string"
   },
   {
@@ -31,6 +31,26 @@
   },
   {
     "key": "audit_log_id",
+    "value": "",
+    "type": "string"
+  },
+  {
+    "key": "plan_id",
+    "value": "",
+    "type": "string"
+  },
+  {
+    "key": "invoice_id",
+    "value": "",
+    "type": "string"
+  },
+  {
+    "key": "subscription_id",
+    "value": "",
+    "type": "string"
+  },
+  {
+    "key": "refund_id",
     "value": "",
     "type": "string"
   }

@@ -179,8 +179,8 @@ export class FeedService {
     page: number = 1,
     limit: number = 20
   ): Promise<FeedItem[]> {
-    // Deprecated: Chuyển sang sử dụng getFeedWithCursor
-    // Tính cursor từ page (đơn giản hóa, không chính xác 100%)
+    // Deprecated: Sử dụng getFeedWithCursor thay thế
+    // Implementation tạm thời để backward compatibility
     const result = await this.getFeedWithCursor(userId, isPremium, limit);
     return result.data;
   }

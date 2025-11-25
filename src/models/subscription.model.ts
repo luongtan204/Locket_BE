@@ -42,15 +42,15 @@ const SubscriptionSchema = new Schema<ISubscription>(
     canceledAt: { type: Date, default: null },
     autoRenew: { type: Boolean, default: true, index: true },
     provider: { type: String, enum: ['stripe', 'vnpay', 'momo', 'apple', 'google', 'manual'], default: 'manual' },
-    externalSubscriptionId: { type: String, default: null, sparse: true, unique: true },
+    externalSubscriptionId: { type: String, sparse: true, unique: true }, // Không có default, để undefined thay vì null
     latestInvoice: { type: Schema.Types.ObjectId, ref: 'Invoice', default: null },
     metadata: { type: Schema.Types.Mixed, default: {} },
   },
   { timestamps: true }
 );
 
-// Một user có thể có nhiều subscription lịch sử, nhưng chỉ 1 active tại một thời điểm tuỳ policy.
-// Dễ truy vấn các sub gần hết hạn:
+// Một user có thể có nhiều subscription active cùng lúc
+// Index để dễ truy vấn các subscription của user theo status và thời gian hết hạn:
 SubscriptionSchema.index({ user: 1, status: 1, currentPeriodEnd: 1 });
 
 export const Subscription = mongoose.model<ISubscription>('Subscription', SubscriptionSchema);

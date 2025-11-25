@@ -47,7 +47,7 @@ export async function recordInvoicePaid(invoiceId: Types.ObjectId) {
  */
 export async function recordRefundSucceeded(refundId: Types.ObjectId) {
   const rf = await Refund.findById(refundId).lean();
-  if (!rf || rf.status !== 'succeeded' || !rf.refundedAt) return;
+  if (!rf || rf.status !== 'APPROVED' || !rf.refundedAt) return;
 
   const day = dayKeyUTC(rf.refundedAt);
   await upsertDailyInc(day, {

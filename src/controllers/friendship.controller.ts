@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../middlewares/auth.middleware';
 import {
   sendRequest,
+  sendRequestByUsername,
   acceptRequest,
   rejectRequest,
   getFriendsList,
@@ -30,6 +31,27 @@ export const sendFriendRequest = asyncHandler(async (req: AuthRequest, res: Resp
   }
 
   const friendship = await sendRequest(req.userId, toUserId);
+
+  return res.status(201).json(ok(friendship, 'Friend request sent successfully'));
+});
+
+/**
+ * Gửi lời mời kết bạn bằng username
+ * POST /friendships/request-by-username
+ * Body: { username: string }
+ */
+export const sendFriendRequestByUsername = asyncHandler(async (req: AuthRequest, res: Response) => {
+  if (!req.userId) {
+    throw new ApiError(401, 'Unauthorized');
+  }
+
+  const { username } = req.body;
+
+  if (!username) {
+    throw new ApiError(400, 'username is required');
+  }
+
+  const friendship = await sendRequestByUsername(req.userId, username);
 
   return res.status(201).json(ok(friendship, 'Friend request sent successfully'));
 });
@@ -92,19 +114,17 @@ export const getFriends = asyncHandler(async (req: AuthRequest, res: Response) =
     const currentUserId = req.userId!;
 
     // Trả về thông tin của người bạn (không phải current user)
-    if (userAId === currentUserId) {
-      return {
-        ...friendship.userB,
-        friendshipId: friendship._id,
-        acceptedAt: friendship.acceptedAt,
-      };
-    } else {
-      return {
-        ...friendship.userA,
-        friendshipId: friendship._id,
-        acceptedAt: friendship.acceptedAt,
-      };
-    }
+    const friendUser = userAId === currentUserId ? friendship.userB : friendship.userA;
+    const friendData = friendUser as any;
+
+    return {
+      _id: friendData._id?.toString() || friendData._id,
+      username: friendData.username || '',
+      displayName: friendData.displayName || friendData.username || '',
+      avatarUrl: friendData.avatarUrl || null,
+      friendshipId: friendship._id,
+      acceptedAt: friendship.acceptedAt,
+    };
   });
 
   return res.status(200).json(ok({ friends, count: friends.length }, 'Friends list retrieved successfully'));

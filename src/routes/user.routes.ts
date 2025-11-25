@@ -64,6 +64,27 @@ router.put('/profile', requireAuth, userController.updateProfile);
 router.patch('/avatar', requireAuth, upload.single('avatar'), userController.updateAvatar);
 
 /**
+ * GET /api/users/me
+ * Lấy thông tin user hiện tại
+ * Headers: Authorization: Bearer <token>
+ * 
+ * Response: {
+ *   success: true,
+ *   message: "User retrieved successfully",
+ *   data: {
+ *     _id: string,
+ *     username: string,
+ *     displayName?: string,
+ *     email?: string,
+ *     phone?: string,
+ *     avatarUrl?: string,
+ *     ...
+ *   }
+ * }
+ */
+router.get('/me', requireAuth, userController.getCurrentUser);
+
+/**
  * GET /api/users/search?keyword=abc
  * Tìm kiếm người dùng theo keyword
  * Query params: keyword (required) - Từ khóa tìm kiếm

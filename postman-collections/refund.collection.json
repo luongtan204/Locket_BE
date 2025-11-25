@@ -1,0 +1,94 @@
+{
+  "info": {
+    "name": "Refund API",
+    "description": "Refund endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:4000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "invoice_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refund_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Submit Refund Request",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Refund has been created with PENDING status', function () {",
+              "    var jsonData = pm.response.json();",
+              "    if (jsonData.data && jsonData.data.refund) {",
+              "        var refund = jsonData.data.refund;",
+              "        pm.expect(refund).to.have.property('_id');",
+              "        pm.expect(refund.status).to.equal('PENDING');",
+              "        pm.expect(refund).to.have.property('userId');",
+              "        pm.expect(refund).to.have.property('invoiceId');",
+              "        pm.expect(refund).to.have.property('amount');",
+              "        pm.expect(refund).to.have.property('reasonByUser');",
+              "        ",
+              "        // Auto-save refund ID for testing",
+              "        if (refund._id) {",
+              "            pm.collectionVariables.set('refund_id', refund._id);",
+              "        }",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"invoiceId\": \"{{invoice_id}}\",\n  \"reason\": \"Sản phẩm không đúng mô tả, muốn hoàn tiền\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/refunds",
+          "host": ["{{base_url}}"],
+          "path": ["api", "refunds"]
+        },
+        "description": "Người dùng gửi yêu cầu hoàn tiền cho một hóa đơn đã thanh toán. Yêu cầu authentication.\n\n**Yêu cầu:**\n- Header: `Authorization: Bearer <token>` (token của user)\n- Body: `{ invoiceId: string, reason: string }`\n\n**Logic:**\n1. Kiểm tra invoiceId có thuộc về userId không\n2. Kiểm tra invoice đã được thanh toán chưa (status phải là 'paid')\n3. Kiểm tra chưa có yêu cầu Refund PENDING nào cho hóa đơn này\n4. Tạo bản ghi Refund mới với status: 'PENDING'\n\n**Body Parameters:**\n- `invoiceId` (required, string): ID của invoice cần hoàn tiền\n- `reason` (required, string): Lý do người dùng yêu cầu hoàn tiền (max 1000 characters)\n\n**Response (201 Created):**\n```json\n{\n  \"success\": true,\n  \"message\": \"Refund request submitted successfully\",\n  \"data\": {\n    \"refund\": {\n      \"_id\": \"...\",\n      \"userId\": \"...\",\n      \"invoiceId\": \"...\",\n      \"amount\": 99000,\n      \"currency\": \"VND\",\n      \"reasonByUser\": \"Sản phẩm không đúng mô tả, muốn hoàn tiền\",\n      \"status\": \"PENDING\",\n      \"provider\": \"manual\",\n      \"createdAt\": \"2024-01-15T10:30:00.000Z\"\n    }\n  }\n}\n```\n\n**Lưu ý:**\n- Chỉ user sở hữu invoice mới có thể yêu cầu hoàn tiền\n- Invoice phải có status 'paid' mới có thể yêu cầu hoàn tiền\n- Mỗi invoice chỉ có thể có 1 refund request PENDING (do invoiceId là unique)\n- Amount sẽ tự động lấy từ invoice (grossAmount hoặc amount)\n- Status mặc định là 'PENDING', chờ admin xử lý\n- Refund ID sẽ được tự động lưu vào collection variable `refund_id`"
+      }
+    }
+  ]
+}
+

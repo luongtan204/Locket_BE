@@ -1,4 +1,5 @@
 import { Friendship, IFriendship } from '../models/friendship.model';
+import { User } from '../models/user.model';
 import { Types } from 'mongoose';
 import { ApiError } from '../utils/apiResponse';
 
@@ -67,6 +68,31 @@ export async function sendRequest(fromUserId: string, toUserId: string): Promise
   }
 
   return friendship;
+}
+
+/**
+ * Gửi lời mời kết bạn bằng username
+ * Tìm user theo username rồi gọi sendRequest
+ */
+export async function sendRequestByUsername(fromUserId: string, username: string): Promise<IFriendship> {
+  // Normalize username (lowercase, trim)
+  const normalizedUsername = username.toLowerCase().trim();
+
+  // Tìm user theo username
+  const targetUser = await User.findOne({ username: normalizedUsername })
+    .select('_id username isActive')
+    .lean();
+
+  if (!targetUser) {
+    throw new ApiError(404, 'User not found');
+  }
+
+  if (!targetUser.isActive) {
+    throw new ApiError(404, 'User not found');
+  }
+
+  // Gọi sendRequest với userId
+  return await sendRequest(fromUserId, targetUser._id.toString());
 }
 
 /**

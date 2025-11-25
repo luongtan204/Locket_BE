@@ -4,27 +4,6 @@
     "description": "Admin endpoints",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
-  "event": [
-    {
-      "listen": "prerequest",
-      "script": {
-        "exec": [
-          "// Sync token từ global variable vào collection variable",
-          "var globalToken = pm.globals.get('token');",
-          "if (globalToken) {",
-          "    pm.collectionVariables.set('token', globalToken);",
-          "}",
-          "",
-          "// Sync user_id từ global variable vào collection variable",
-          "var globalUserId = pm.globals.get('user_id');",
-          "if (globalUserId) {",
-          "    pm.collectionVariables.set('user_id', globalUserId);",
-          "}"
-        ],
-        "type": "text/javascript"
-      }
-    }
-  ],
   "variable": [
     {
       "key": "base_url",
@@ -58,6 +37,21 @@
     },
     {
       "key": "audit_log_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refund_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "plan_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ad_id",
       "value": "",
       "type": "string"
     }
@@ -239,6 +233,428 @@
           ]
         },
         "description": "Xóa vĩnh viễn một bài đăng và tất cả comment, reaction liên quan. Chỉ Admin/SuperAdmin mới có quyền.\n\n**Yêu cầu:**\n- Header: `Authorization: Bearer <token>` (token của admin)\n- User phải có role `admin` hoặc `superadmin`\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Post deleted successfully\",\n  \"data\": {\n    \"post\": {\n      \"_id\": \"...\",\n      \"author\": \"...\",\n      \"caption\": \"...\"\n    }\n  }\n}\n```\n\n**Lưu ý:**\n- Hành động này sẽ được ghi vào AdminAuditLog\n- Post, Comment và Reaction liên quan sẽ bị xóa vĩnh viễn"
+      }
+    },
+    {
+      "name": "Create Plan",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Plan has all required fields', function () {",
+              "    var jsonData = pm.response.json();",
+              "    if (jsonData.data && jsonData.data.plan) {",
+              "        var plan = jsonData.data.plan;",
+              "        pm.expect(plan).to.have.property('_id');",
+              "        pm.expect(plan).to.have.property('code');",
+              "        pm.expect(plan).to.have.property('name');",
+              "        pm.expect(plan).to.have.property('price');",
+              "        pm.expect(plan).to.have.property('currency');",
+              "        pm.expect(plan).to.have.property('interval');",
+              "        pm.expect(plan).to.have.property('intervalCount');",
+              "        pm.expect(plan).to.have.property('isActive');",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"code\": \"premium_monthly\",\n  \"name\": \"Premium Monthly\",\n  \"description\": \"Gói Premium hàng tháng với đầy đủ tính năng\",\n  \"price\": 99000,\n  \"currency\": \"VND\",\n  \"interval\": \"month\",\n  \"intervalCount\": 1,\n  \"trialDays\": 7,\n  \"features\": {\n    \"maxPosts\": 1000,\n    \"adFree\": true,\n    \"prioritySupport\": true\n  },\n  \"isActive\": true\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/admin/plans",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "plans"
+          ]
+        },
+        "description": "Tạo Plan mới. Chỉ Admin/SuperAdmin mới có quyền.\n\n**Yêu cầu:**\n- Header: `Authorization: Bearer <token>` (token của admin)\n- User phải có role `admin` hoặc `superadmin`\n- Body: JSON với các trường sau:\n\n**Body Parameters:**\n- `code` (required, string): Mã gói nội bộ, phải unique (ví dụ: 'premium_monthly')\n- `name` (required, string): Tên gói (ví dụ: 'Premium Monthly')\n- `description` (optional, string): Mô tả gói\n- `price` (required, number): Giá gói (đơn vị nhỏ nhất, ví dụ VND)\n- `currency` (optional, string): Đơn vị tiền tệ (default: 'VND')\n- `interval` (required, string): Chu kỳ thanh toán - 'day', 'week', 'month', 'year'\n- `intervalCount` (optional, number): Số chu kỳ (default: 1, min: 1)\n- `trialDays` (optional, number): Số ngày dùng thử (default: 0)\n- `features` (optional, object): Cấu hình tính năng (limits/quyền)\n- `isActive` (optional, boolean): Trạng thái hoạt động (default: true)\n- `providerMetadata` (optional, object): Metadata mapping với payment provider\n\n**Response (201 Created):**\n```json\n{\n  \"success\": true,\n  \"message\": \"Plan created successfully\",\n  \"data\": {\n    \"plan\": {\n      \"_id\": \"...\",\n      \"code\": \"premium_monthly\",\n      \"name\": \"Premium Monthly\",\n      \"description\": \"Gói Premium hàng tháng với đầy đủ tính năng\",\n      \"price\": 99000,\n      \"currency\": \"VND\",\n      \"interval\": \"month\",\n      \"intervalCount\": 1,\n      \"trialDays\": 7,\n      \"features\": {\n        \"maxPosts\": 1000,\n        \"adFree\": true,\n        \"prioritySupport\": true\n      },\n      \"isActive\": true,\n      \"createdAt\": \"2024-01-01T00:00:00.000Z\",\n      \"updatedAt\": \"2024-01-01T00:00:00.000Z\"\n    }\n  }\n}\n```\n\n**Lưu ý:**\n- Hành động này sẽ được ghi vào AdminAuditLog với actionType 'CREATE' và targetResource 'PLAN'\n- Code phải unique, nếu trùng sẽ trả về lỗi 400\n- Validation sẽ kiểm tra tất cả các trường bắt buộc và format\n- Plan ID sẽ được tự động lưu vào collection variable `plan_id`\n\n**Ví dụ Body:**\n```json\n{\n  \"code\": \"premium_monthly\",\n  \"name\": \"Premium Monthly\",\n  \"description\": \"Gói Premium hàng tháng\",\n  \"price\": 99000,\n  \"currency\": \"VND\",\n  \"interval\": \"month\",\n  \"intervalCount\": 1,\n  \"trialDays\": 7,\n  \"features\": {\n    \"maxPosts\": 1000,\n    \"adFree\": true\n  },\n  \"isActive\": true\n}\n```"
+      }
+    },
+    {
+      "name": "Update Plan",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Plan has been updated', function () {",
+              "    var jsonData = pm.response.json();",
+              "    if (jsonData.data && jsonData.data.plan) {",
+              "        pm.expect(jsonData.data.plan).to.have.property('_id');",
+              "        pm.expect(jsonData.data.plan).to.have.property('code');",
+              "        pm.expect(jsonData.data.plan).to.have.property('name');",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Premium Monthly Updated\",\n  \"description\": \"Gói Premium hàng tháng đã được cập nhật\",\n  \"price\": 129000,\n  \"features\": {\n    \"maxPosts\": 2000,\n    \"adFree\": true,\n    \"prioritySupport\": true\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/admin/plans/:planId",
+          "host": ["{{base_url}}"],
+          "path": ["api", "admin", "plans", ":planId"],
+          "variable": [
+            {
+              "key": "planId",
+              "value": "{{plan_id}}",
+              "description": "ID của plan cần cập nhật"
+            }
+          ]
+        },
+        "description": "Cập nhật Plan. Chỉ Admin/SuperAdmin mới có quyền.\n\n**Yêu cầu:**\n- Header: `Authorization: Bearer <token>` (token của admin)\n- User phải có role `admin` hoặc `superadmin`\n\n**Body Parameters (tất cả đều optional):**\n- `code` (optional, string): Mã gói nội bộ (phải unique nếu thay đổi)\n- `name` (optional, string): Tên gói\n- `description` (optional, string): Mô tả gói\n- `price` (optional, number): Giá gói\n- `currency` (optional, string): Đơn vị tiền tệ\n- `interval` (optional, string): Chu kỳ thanh toán - 'day', 'week', 'month', 'year'\n- `intervalCount` (optional, number): Số chu kỳ\n- `trialDays` (optional, number): Số ngày dùng thử\n- `features` (optional, object): Cấu hình tính năng\n- `isActive` (optional, boolean): Trạng thái hoạt động\n\n**Response (200 OK):**\n```json\n{\n  \"success\": true,\n  \"message\": \"Plan updated successfully\",\n  \"data\": {\n    \"plan\": {\n      \"_id\": \"...\",\n      \"code\": \"premium_monthly\",\n      \"name\": \"Premium Monthly Updated\",\n      \"price\": 129000,\n      ...\n    }\n  }\n}\n```\n\n**Lưu ý:**\n- Hành động này sẽ được ghi vào AdminAuditLog với actionType 'UPDATE' và targetResource 'PLAN'\n- Tất cả các trường đều optional - chỉ cập nhật các trường được gửi"
+      }
+    },
+    {
+      "name": "Deactivate Plan",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Plan has been deactivated', function () {",
+              "    var jsonData = pm.response.json();",
+              "    if (jsonData.data && jsonData.data.plan) {",
+              "        pm.expect(jsonData.data.plan.isActive).to.be.false;",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/admin/plans/:planId",
+          "host": ["{{base_url}}"],
+          "path": ["api", "admin", "plans", ":planId"],
+          "variable": [
+            {
+              "key": "planId",
+              "value": "{{plan_id}}",
+              "description": "ID của plan cần vô hiệu hóa"
+            }
+          ]
+        },
+        "description": "Vô hiệu hóa Plan (soft delete - set isActive: false). Chỉ Admin/SuperAdmin mới có quyền.\n\n**Response (200 OK):**\n```json\n{\n  \"success\": true,\n  \"message\": \"Plan deactivated successfully\",\n  \"data\": {\n    \"plan\": {\n      \"_id\": \"...\",\n      \"code\": \"premium_monthly\",\n      \"name\": \"Premium Monthly\",\n      \"isActive\": false\n    }\n  }\n}\n```\n\n**Lưu ý:**\n- Hành động này sẽ được ghi vào AdminAuditLog\n- Plan không bị xóa khỏi database, chỉ set `isActive: false`"
+      }
+    },
+    {
+      "name": "Activate Plan",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Plan has been activated', function () {",
+              "    var jsonData = pm.response.json();",
+              "    if (jsonData.data && jsonData.data.plan) {",
+              "        pm.expect(jsonData.data.plan.isActive).to.be.true;",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/admin/plans/:planId/activate",
+          "host": ["{{base_url}}"],
+          "path": ["api", "admin", "plans", ":planId", "activate"],
+          "variable": [
+            {
+              "key": "planId",
+              "value": "{{plan_id}}",
+              "description": "ID của plan cần kích hoạt"
+            }
+          ]
+        },
+        "description": "Kích hoạt lại Plan (set isActive: true). Chỉ Admin/SuperAdmin mới có quyền.\n\n**Response (200 OK):**\n```json\n{\n  \"success\": true,\n  \"message\": \"Plan activated successfully\",\n  \"data\": {\n    \"plan\": {\n      \"_id\": \"...\",\n      \"code\": \"premium_monthly\",\n      \"name\": \"Premium Monthly\",\n      \"isActive\": true\n    }\n  }\n}\n```\n\n**Lưu ý:**\n- Hành động này sẽ được ghi vào AdminAuditLog\n- Plan sẽ được set `isActive: true`"
+      }
+    },
+    {
+      "name": "Get Revenue Report",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Response has revenue report data', function () {",
+              "    var jsonData = pm.response.json();",
+              "    if (jsonData.data) {",
+              "        pm.expect(jsonData.data).to.have.property('period');",
+              "        pm.expect(jsonData.data).to.have.property('summary');",
+              "        pm.expect(jsonData.data).to.have.property('dailyDetails');",
+              "        pm.expect(jsonData.data.summary).to.have.property('totalNetRevenue');",
+              "        pm.expect(jsonData.data.summary).to.have.property('totalInvoices');",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/admin/reports/revenue?startDate=2024-01-01&endDate=2024-01-31",
+          "host": ["{{base_url}}"],
+          "path": ["api", "admin", "reports", "revenue"],
+          "query": [
+            {
+              "key": "startDate",
+              "value": "2024-01-01",
+              "description": "Ngày bắt đầu (format: YYYY-MM-DD)"
+            },
+            {
+              "key": "endDate",
+              "value": "2024-01-31",
+              "description": "Ngày kết thúc (format: YYYY-MM-DD)"
+            }
+          ]
+        },
+        "description": "Lấy báo cáo tổng hợp doanh thu trong khoảng thời gian. Chỉ Admin/SuperAdmin mới có quyền.\n\n**Query Parameters:**\n- `startDate` (required, string): Ngày bắt đầu (format: YYYY-MM-DD)\n- `endDate` (required, string): Ngày kết thúc (format: YYYY-MM-DD)\n\n**Response (200 OK):**\n```json\n{\n  \"success\": true,\n  \"message\": \"Revenue report retrieved successfully\",\n  \"data\": {\n    \"period\": {\n      \"startDate\": \"2024-01-01\",\n      \"endDate\": \"2024-01-31\",\n      \"days\": 31\n    },\n    \"summary\": {\n      \"totalGrossRevenue\": 5000000,\n      \"totalNetRevenue\": 4500000,\n      \"totalRefunds\": 200000,\n      \"totalInvoices\": 50,\n      \"averageDailyRevenue\": 145161.29,\n      \"currency\": \"VND\"\n    },\n    \"dailyDetails\": [...]\n  }\n}\n```"
+      }
+    },
+    {
+      "name": "Get Ad Performance Report",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Response has ad performance data', function () {",
+              "    var jsonData = pm.response.json();",
+              "    if (jsonData.data) {",
+              "        pm.expect(jsonData.data).to.have.property('ad');",
+              "        pm.expect(jsonData.data).to.have.property('summary');",
+              "        pm.expect(jsonData.data.summary).to.have.property('totalImpressions');",
+              "        pm.expect(jsonData.data.summary).to.have.property('totalClicks');",
+              "        pm.expect(jsonData.data.summary).to.have.property('ctr');",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/admin/reports/ad_performance?adId={{ad_id}}&startDate=2024-01-01&endDate=2024-01-31",
+          "host": ["{{base_url}}"],
+          "path": ["api", "admin", "reports", "ad_performance"],
+          "query": [
+            {
+              "key": "adId",
+              "value": "{{ad_id}}",
+              "description": "ID của quảng cáo cần xem báo cáo"
+            },
+            {
+              "key": "startDate",
+              "value": "2024-01-01",
+              "description": "Ngày bắt đầu (format: YYYY-MM-DD)"
+            },
+            {
+              "key": "endDate",
+              "value": "2024-01-31",
+              "description": "Ngày kết thúc (format: YYYY-MM-DD)"
+            }
+          ]
+        },
+        "description": "Lấy báo cáo hiệu suất quảng cáo (impression, click, CTR). Chỉ Admin/SuperAdmin mới có quyền.\n\n**Query Parameters:**\n- `adId` (required, string): ID của quảng cáo\n- `startDate` (required, string): Ngày bắt đầu (format: YYYY-MM-DD)\n- `endDate` (required, string): Ngày kết thúc (format: YYYY-MM-DD)\n\n**Response (200 OK):**\n```json\n{\n  \"success\": true,\n  \"message\": \"Ad performance report retrieved successfully\",\n  \"data\": {\n    \"ad\": {\n      \"_id\": \"...\",\n      \"name\": \"Summer Promotion Ad\",\n      \"placement\": \"feed\"\n    },\n    \"summary\": {\n      \"totalImpressions\": 10000,\n      \"totalClicks\": 250,\n      \"ctr\": 2.5\n    },\n    \"dailyDetails\": [...]\n  }\n}\n```\n\n**CTR = (Clicks / Impressions) × 100**"
+      }
+    },
+    {
+      "name": "Process Refund",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Refund has been processed', function () {",
+              "    var jsonData = pm.response.json();",
+              "    if (jsonData.data && jsonData.data.refund) {",
+              "        var refund = jsonData.data.refund;",
+              "        pm.expect(refund).to.have.property('status');",
+              "        pm.expect(['APPROVED', 'REJECTED']).to.include(refund.status);",
+              "        pm.expect(refund).to.have.property('processedByAdminId');",
+              "        ",
+              "        // If approved, should have refundedAt",
+              "        if (refund.status === 'APPROVED') {",
+              "            pm.expect(refund).to.have.property('refundedAt');",
+              "        }",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"APPROVED\",\n  \"adminNote\": \"Đã xác nhận và hoàn tiền thành công\",\n  \"externalRefundId\": \"ref_123456789\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/admin/refunds/:refundId/process",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "refunds",
+            ":refundId",
+            "process"
+          ],
+          "variable": [
+            {
+              "key": "refundId",
+              "value": "{{refund_id}}",
+              "description": "ID của refund cần xử lý"
+            }
+          ]
+        },
+        "description": "Xử lý refund: phê duyệt (APPROVED) hoặc từ chối (REJECTED). Chỉ Admin/SuperAdmin mới có quyền.\n\n**Yêu cầu:**\n- Header: `Authorization: Bearer <token>` (token của admin)\n- User phải có role `admin` hoặc `superadmin`\n- Refund phải có status 'PENDING'\n\n**Body Parameters:**\n- `status` (required, string): Trạng thái xử lý - 'APPROVED' hoặc 'REJECTED'\n- `adminNote` (optional, string): Ghi chú của Admin về quyết định xử lý\n- `externalRefundId` (optional, string): ID refund từ payment provider (nếu có)\n\n**Logic:**\n- Nếu `status = 'APPROVED'`: Refund được phê duyệt\n  - Status được cập nhật thành 'APPROVED'\n  - `refundedAt` được set thành thời điểm hiện tại\n  - `processedByAdminId` được set thành ID của admin xử lý\n  - `adminNote` được lưu (nếu có)\n  - `externalRefundId` được lưu (nếu có)\n  - Ghi nhận vào revenue snapshot (event-driven)\n  - TODO: Gọi API payment provider để thực hiện hoàn tiền thực tế\n\n- Nếu `status = 'REJECTED'`: Refund bị từ chối\n  - Status được cập nhật thành 'REJECTED'\n  - `processedByAdminId` được set thành ID của admin xử lý\n  - `adminNote` được lưu (nếu có)\n  - `refundedAt` không được set\n\n**Response (200 OK):**\n```json\n{\n  \"success\": true,\n  \"message\": \"Refund approved successfully\" hoặc \"Refund rejected successfully\",\n  \"data\": {\n    \"refund\": {\n      \"_id\": \"...\",\n      \"userId\": \"...\",\n      \"invoiceId\": \"...\",\n      \"amount\": 99000,\n      \"currency\": \"VND\",\n      \"status\": \"APPROVED\" hoặc \"REJECTED\",\n      \"reasonByUser\": \"Sản phẩm không đúng mô tả\",\n      \"adminNote\": \"Đã xác nhận và hoàn tiền thành công\",\n      \"provider\": \"stripe\",\n      \"externalRefundId\": \"ref_123456789\",\n      \"processedByAdminId\": \"...\",\n      \"refundedAt\": \"2024-01-15T10:30:00.000Z\" (nếu approved),\n      \"createdAt\": \"2024-01-15T09:00:00.000Z\",\n      \"updatedAt\": \"2024-01-15T10:30:00.000Z\"\n    }\n  }\n}\n```\n\n**Lưu ý:**\n- Hành động này sẽ được ghi vào AdminAuditLog với actionType 'UPDATE' và targetResource 'REFUND'\n- Refund phải có status 'PENDING', nếu đã được xử lý sẽ trả về lỗi 400\n- Khi APPROVED, refund sẽ được ghi nhận vào revenue snapshot để tính toán doanh thu chính xác\n- Nếu có payment provider (Stripe, VNPay, etc.), cần gọi API của provider để thực hiện hoàn tiền thực tế\n\n**Ví dụ Body - Approve:**\n```json\n{\n  \"status\": \"APPROVED\",\n  \"adminNote\": \"Đã xác nhận và hoàn tiền thành công\",\n  \"externalRefundId\": \"ref_stripe_123456789\"\n}\n```\n\n**Ví dụ Body - Reject:**\n```json\n{\n  \"status\": \"REJECTED\",\n  \"adminNote\": \"Yêu cầu không hợp lệ, đã quá thời hạn hoàn tiền\"\n}\n```\n\n**Lỗi có thể gặp:**\n- 400: Refund has already been processed (refund không còn status 'PENDING')\n- 400: Status is required and must be either 'APPROVED' or 'REJECTED'\n- 404: Refund not found\n- 401: Missing admin context\n- 403: Access Denied: Insufficient permissions"
       }
     },
     {
@@ -444,6 +860,131 @@
           ]
         },
         "description": "Test case để verify middleware phân quyền. Nếu user không có role admin/superadmin, sẽ nhận 403.\n\n**Expected Response:**\n```json\n{\n  \"statusCode\": 403,\n  \"message\": \"Access Denied: Insufficient permissions\"\n}\n```"
+      }
+    },
+    {
+      "name": "Create Ad",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Ad has all required fields', function () {",
+              "    var jsonData = pm.response.json();",
+              "    if (jsonData.data && jsonData.data.ad) {",
+              "        var ad = jsonData.data.ad;",
+              "        pm.expect(ad).to.have.property('_id');",
+              "        pm.expect(ad).to.have.property('name');",
+              "        pm.expect(ad).to.have.property('placement');",
+              "        pm.expect(ad).to.have.property('imageUrl');",
+              "        ",
+              "        // Auto-save ad ID for testing",
+              "        if (ad._id) {",
+              "            pm.collectionVariables.set('ad_id', ad._id);",
+              "        }",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Summer Promotion Ad\",\n  \"placement\": \"feed\",\n  \"imageUrl\": \"https://example.com/ads/summer-promo.jpg\",\n  \"title\": \"Summer Sale 50% Off\",\n  \"description\": \"Khuyến mãi hè lớn nhất năm\",\n  \"ctaText\": \"Mua ngay\",\n  \"ctaUrl\": \"https://example.com/promo\",\n  \"priority\": 10,\n  \"isActive\": true,\n  \"startAt\": \"2024-01-01T00:00:00.000Z\",\n  \"endAt\": \"2024-12-31T23:59:59.000Z\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/admin/ads",
+          "host": ["{{base_url}}"],
+          "path": ["api", "admin", "ads"]
+        },
+        "description": "Tạo quảng cáo mới. Chỉ Admin/SuperAdmin mới có quyền.\n\n**Body Parameters:**\n- `name` (required, string): Tên quảng cáo\n- `placement` (required, string): 'feed', 'splash', hoặc 'banner'\n- `imageUrl` (required, string): URL ảnh quảng cáo\n- `title`, `description`, `ctaText`, `ctaUrl` (optional, string)\n- `priority` (optional, number): Độ ưu tiên (default: 0)\n- `isActive` (optional, boolean): Trạng thái (default: true)\n- `startAt`, `endAt` (optional, Date): Lịch chạy\n\n**Response (201 Created):**\n```json\n{\n  \"success\": true,\n  \"message\": \"Ad created successfully\",\n  \"data\": {\n    \"ad\": {\n      \"_id\": \"...\",\n      \"name\": \"Summer Promotion Ad\",\n      \"placement\": \"feed\",\n      \"isActive\": true\n    }\n  }\n}\n```\n\n**Lưu ý:**\n- Hành động này sẽ được ghi vào AdminAuditLog với targetResource 'AD'\n- Ad ID sẽ được tự động lưu vào collection variable `ad_id`"
+      }
+    },
+    {
+      "name": "Update Ad Status",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Ad status has been updated', function () {",
+              "    var jsonData = pm.response.json();",
+              "    if (jsonData.data && jsonData.data.ad) {",
+              "        var ad = jsonData.data.ad;",
+              "        pm.expect(ad).to.have.property('isActive');",
+              "        var requestBody = JSON.parse(pm.request.body.raw);",
+              "        if (requestBody.status === 'ACTIVE') {",
+              "            pm.expect(ad.isActive).to.be.true;",
+              "        } else if (requestBody.status === 'PAUSED') {",
+              "            pm.expect(ad.isActive).to.be.false;",
+              "        }",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"PAUSED\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/admin/ads/:adId/status",
+          "host": ["{{base_url}}"],
+          "path": ["api", "admin", "ads", ":adId", "status"],
+          "variable": [
+            {
+              "key": "adId",
+              "value": "{{ad_id}}",
+              "description": "ID của quảng cáo cần cập nhật trạng thái"
+            }
+          ]
+        },
+        "description": "Cập nhật trạng thái quảng cáo (ACTIVE hoặc PAUSED). Chỉ Admin/SuperAdmin mới có quyền.\n\n**Body Parameters:**\n- `status` (required, string): 'ACTIVE' hoặc 'PAUSED'\n  - 'ACTIVE' → set `isActive: true`\n  - 'PAUSED' → set `isActive: false`\n\n**Response (200 OK):**\n```json\n{\n  \"success\": true,\n  \"message\": \"Ad paused successfully\" hoặc \"Ad activated successfully\",\n  \"data\": {\n    \"ad\": {\n      \"_id\": \"...\",\n      \"name\": \"Summer Promotion Ad\",\n      \"isActive\": false (nếu PAUSED) hoặc true (nếu ACTIVE)\n    }\n  }\n}\n```\n\n**Lưu ý:**\n- Hành động này sẽ được ghi vào AdminAuditLog với targetResource 'AD'\n- PAUSED = `isActive: false` - quảng cáo sẽ không hiển thị\n- ACTIVE = `isActive: true` - quảng cáo sẽ hiển thị"
       }
     }
   ]

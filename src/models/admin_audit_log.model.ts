@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
 
 export type AdminActionType = 'CREATE' | 'UPDATE' | 'DELETE' | 'BAN';
-export type TargetResource = 'USER' | 'POST' | 'SUBSCRIPTION';
+export type TargetResource = 'USER' | 'POST' | 'SUBSCRIPTION' | 'PLAN' | 'REFUND' | 'AD';
 
 export interface IAdminAuditLog extends Document {
   adminId: Types.ObjectId; // Admin thực hiện hành động (ref đến User)
@@ -23,7 +23,7 @@ const AdminAuditLogSchema = new Schema<IAdminAuditLog>(
     },
     targetResource: {
       type: String,
-      enum: ['USER', 'POST', 'SUBSCRIPTION'],
+      enum: ['USER', 'POST', 'SUBSCRIPTION', 'PLAN', 'REFUND', 'AD'],
       required: true,
       index: true,
     },

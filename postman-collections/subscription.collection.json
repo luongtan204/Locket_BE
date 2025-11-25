@@ -1,0 +1,110 @@
+{
+  "info": {
+    "name": "Subscription API",
+    "description": "Subscription endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:4000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "plan_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "invoice_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "subscription_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Purchase Subscription",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Response has subscription and invoice', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.data).to.have.property('subscription');",
+              "    pm.expect(jsonData.data).to.have.property('invoice');",
+              "});",
+              "",
+              "pm.test('Subscription has correct status', function () {",
+              "    var jsonData = pm.response.json();",
+              "    if (jsonData.data.subscription) {",
+              "        pm.expect(jsonData.data.subscription.status).to.equal('active');",
+              "        ",
+              "        // Auto-save subscription and invoice IDs",
+              "        if (jsonData.data.subscription._id) {",
+              "            pm.collectionVariables.set('subscription_id', jsonData.data.subscription._id);",
+              "        }",
+              "        if (jsonData.data.invoice && jsonData.data.invoice._id) {",
+              "            pm.collectionVariables.set('invoice_id', jsonData.data.invoice._id);",
+              "        }",
+              "    }",
+              "});",
+              "",
+              "pm.test('Invoice has paid status', function () {",
+              "    var jsonData = pm.response.json();",
+              "    if (jsonData.data.invoice) {",
+              "        pm.expect(jsonData.data.invoice.status).to.equal('paid');",
+              "        pm.expect(jsonData.data.invoice).to.have.property('paidAt');",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"planId\": \"{{plan_id}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/subscriptions/purchase",
+          "host": ["{{base_url}}"],
+          "path": ["api", "subscriptions", "purchase"]
+        },
+        "description": "Mua gói subscription tức thì (bỏ qua thanh toán). Yêu cầu authentication.\n\n**Yêu cầu:**\n- Header: `Authorization: Bearer <token>` (token của user)\n- Body: `{ planId: string }`\n\n**Logic:**\n1. Kiểm tra user đã có subscription active chưa (nếu có thì trả về lỗi)\n2. Tìm Plan bằng planId\n3. Tạo Invoice mới với status 'paid', amount = plan.price\n4. Tạo Subscription mới với status 'active', tính toán startDate và endDate dựa trên interval và intervalCount của Plan\n5. Ghi nhận vào revenue snapshot (event-driven)\n\n**Body Parameters:**\n- `planId` (required, string): ID của plan cần mua\n\n**Response (201 Created):**\n```json\n{\n  \"success\": true,\n  \"message\": \"Subscription created successfully\",\n  \"data\": {\n    \"subscription\": {\n      \"_id\": \"...\",\n      \"status\": \"active\",\n      \"startAt\": \"2024-01-15T10:30:00.000Z\",\n      \"currentPeriodEnd\": \"2024-02-15T10:30:00.000Z\"\n    },\n    \"invoice\": {\n      \"_id\": \"...\",\n      \"status\": \"paid\",\n      \"amount\": 99000,\n      \"paidAt\": \"2024-01-15T10:30:00.000Z\"\n    }\n  }\n}\n```\n\n**Lưu ý:**\n- User không được có subscription active (trialing, active, past_due) trước khi mua gói mới\n- Plan phải có `isActive: true`\n- Invoice được tạo với status 'paid' ngay lập tức (bỏ qua thanh toán)\n- Subscription được tạo với status 'active' và `autoRenew: false`\n- Revenue được ghi nhận tự động vào revenue snapshot\n- Subscription ID và Invoice ID sẽ được tự động lưu vào collection variables"
+      }
+    }
+  ]
+}
+

@@ -4,27 +4,6 @@
     "description": "Feed endpoints",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
-  "event": [
-    {
-      "listen": "prerequest",
-      "script": {
-        "exec": [
-          "// Sync token từ global variable vào collection variable",
-          "var globalToken = pm.globals.get('token');",
-          "if (globalToken) {",
-          "    pm.collectionVariables.set('token', globalToken);",
-          "}",
-          "",
-          "// Sync user_id từ global variable vào collection variable",
-          "var globalUserId = pm.globals.get('user_id');",
-          "if (globalUserId) {",
-          "    pm.collectionVariables.set('user_id', globalUserId);",
-          "}"
-        ],
-        "type": "text/javascript"
-      }
-    }
-  ],
   "variable": [
     {
       "key": "base_url",
@@ -62,53 +41,14 @@
       "type": "string"
     },
     {
-      "key": "feed_cursor",
+      "key": "refund_id",
       "value": "",
       "type": "string"
     }
   ],
   "item": [
     {
-      "name": "Get Feed (First Page)",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Status code is 200', function () {",
-              "    pm.response.to.have.status(200);",
-              "});",
-              "",
-              "pm.test('Response has success field', function () {",
-              "    var jsonData = pm.response.json();",
-              "    pm.expect(jsonData).to.have.property('success');",
-              "    pm.expect(jsonData.success).to.be.true;",
-              "});",
-              "",
-              "pm.test('Response has data and pagination', function () {",
-              "    var jsonData = pm.response.json();",
-              "    pm.expect(jsonData.data).to.have.property('data');",
-              "    pm.expect(jsonData.data).to.have.property('pagination');",
-              "    pm.expect(jsonData.data.pagination).to.have.property('nextCursor');",
-              "    pm.expect(jsonData.data.pagination).to.have.property('hasMore');",
-              "});",
-              "",
-              "// Lưu nextCursor vào collection variable để dùng cho lần gọi sau",
-              "var jsonData = pm.response.json();",
-              "if (jsonData.success && jsonData.data && jsonData.data.pagination) {",
-              "    var nextCursor = jsonData.data.pagination.nextCursor;",
-              "    if (nextCursor) {",
-              "        pm.collectionVariables.set('feed_cursor', nextCursor);",
-              "        console.log('Next cursor saved:', nextCursor);",
-              "    } else {",
-              "        pm.collectionVariables.set('feed_cursor', '');",
-              "        console.log('No more data (hasMore = false)');",
-              "    }",
-              "}"
-            ]
-          }
-        }
-      ],
+      "name": "Get Feed",
       "request": {
         "method": "GET",
         "header": [
@@ -118,7 +58,7 @@
           }
         ],
         "url": {
-          "raw": "{{base_url}}/api/feed?limit=10",
+          "raw": "{{base_url}}/api/feed?page=1&limit=20",
           "host": [
             "{{base_url}}"
           ],
@@ -128,87 +68,15 @@
           ],
           "query": [
             {
-              "key": "limit",
-              "value": "10",
-              "description": "Số lượng items mỗi lần (default: 10, max: 50)"
-            }
-          ]
-        },
-        "description": "Lấy feed đầu tiên (không có cursor).\n\n**Query Params:**\n- `limit`: Số lượng items mỗi lần (default: 10, max: 50)\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"data\": [...feedItems...],\n    \"pagination\": {\n      \"nextCursor\": \"2023-10-25T10:00:00.000Z\" | null,\n      \"hasMore\": true | false\n    }\n  }\n}\n```\n\n**Lưu ý:**\n- nextCursor sẽ được tự động lưu vào collection variable `feed_cursor`\n- Sử dụng nextCursor này cho request \"Get Feed (Next Page)\""
-      }
-    },
-    {
-      "name": "Get Feed (Next Page)",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Status code is 200', function () {",
-              "    pm.response.to.have.status(200);",
-              "});",
-              "",
-              "pm.test('Response has success field', function () {",
-              "    var jsonData = pm.response.json();",
-              "    pm.expect(jsonData).to.have.property('success');",
-              "    pm.expect(jsonData.success).to.be.true;",
-              "});",
-              "",
-              "pm.test('Response has data and pagination', function () {",
-              "    var jsonData = pm.response.json();",
-              "    pm.expect(jsonData.data).to.have.property('data');",
-              "    pm.expect(jsonData.data).to.have.property('pagination');",
-              "    pm.expect(jsonData.data.pagination).to.have.property('nextCursor');",
-              "    pm.expect(jsonData.data.pagination).to.have.property('hasMore');",
-              "});",
-              "",
-              "// Lưu nextCursor mới vào collection variable",
-              "var jsonData = pm.response.json();",
-              "if (jsonData.success && jsonData.data && jsonData.data.pagination) {",
-              "    var nextCursor = jsonData.data.pagination.nextCursor;",
-              "    if (nextCursor) {",
-              "        pm.collectionVariables.set('feed_cursor', nextCursor);",
-              "        console.log('Next cursor saved:', nextCursor);",
-              "    } else {",
-              "        pm.collectionVariables.set('feed_cursor', '');",
-              "        console.log('No more data (hasMore = false)');",
-              "    }",
-              "}"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          }
-        ],
-        "url": {
-          "raw": "{{base_url}}/api/feed?limit=10&cursor={{feed_cursor}}",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "api",
-            "feed"
-          ],
-          "query": [
-            {
-              "key": "limit",
-              "value": "10",
-              "description": "Số lượng items mỗi lần (default: 10, max: 50)"
+              "key": "page",
+              "value": "1"
             },
             {
-              "key": "cursor",
-              "value": "{{feed_cursor}}",
-              "description": "Mốc thời gian (createdAt ISO string) của bài viết cuối cùng"
+              "key": "limit",
+              "value": "20"
             }
           ]
-        },
-        "description": "Lấy feed tiếp theo (có cursor).\n\n**Query Params:**\n- `limit`: Số lượng items mỗi lần (default: 10, max: 50)\n- `cursor`: Mốc thời gian (createdAt ISO string) từ lần gọi trước\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"data\": [...feedItems...],\n    \"pagination\": {\n      \"nextCursor\": \"2023-10-25T10:00:00.000Z\" | null,\n      \"hasMore\": true | false\n    }\n  }\n}\n```\n\n**Cách sử dụng:**\n1. Gọi \"Get Feed (First Page)\" trước\n2. Lấy `nextCursor` từ response\n3. Gọi \"Get Feed (Next Page)\" với cursor đó\n4. Lặp lại cho đến khi `hasMore = false`"
+        }
       }
     }
   ]

@@ -318,6 +318,6 @@ export async function checkUsernameAvailability(username: string): Promise<{ ava
 }
 
 function sanitize(user: any) {
-	const { _id, username, displayName, email, phone, roles, createdAt, updatedAt } = user.toObject();
-	return { id: _id, username, displayName, email, phone, roles, createdAt, updatedAt };
+	const { _id, username, displayName, email, phone, avatarUrl, roles, createdAt, updatedAt } = user.toObject();
+	return { id: _id, username, displayName, email, phone, avatarUrl, roles, createdAt, updatedAt };
 }

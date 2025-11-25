@@ -17,7 +17,10 @@ postman-collections/
 ├── chat.collection.json         # Chat & messaging
 ├── friendship.collection.json   # Friend management
 ├── invite.collection.json       # Invite link & deep linking
-└── admin.collection.json        # Admin operations
+├── admin.collection.json        # Admin operations
+├── plan.collection.json         # Public Plan endpoints
+├── subscription.collection.json # Subscription endpoints
+└── refund.collection.json       # Refund endpoints
 ```
 
 ## Cách sử dụng
@@ -47,6 +50,10 @@ Sau khi import, bạn cần cấu hình các biến collection:
 - `conversation_id`: ID của conversation để test
 - `other_user_id`: ID của user khác để test
 - `audit_log_id`: ID của audit log để test
+- `plan_id`: ID của plan để test
+- `invoice_id`: ID của invoice để test
+- `subscription_id`: ID của subscription để test
+- `refund_id`: ID của refund để test
 
 ## Collections
 
@@ -108,9 +115,20 @@ Sau khi import, bạn cần cấu hình các biến collection:
 - Ban User
 - Unban User
 - Delete Post
+- Create Plan (auto-save plan_id)
+- Process Refund
 - Get Audit Logs (auto-save audit_log_id)
 - Get Audit Log by ID
 - Test Unauthorized Access (403)
+
+### 11. Plan (`plan.collection.json`)
+- Get Public Plans (không cần authentication)
+
+### 12. Subscription (`subscription.collection.json`)
+- Purchase Subscription (auto-save subscription_id và invoice_id)
+
+### 13. Refund (`refund.collection.json`)
+- Submit Refund Request (auto-save refund_id)
 
 ## Lưu ý
 

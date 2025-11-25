@@ -340,7 +340,65 @@
             }
           ]
         },
-        "description": "Tìm kiếm người dùng theo keyword.\n\n**Query Params:**\n- `keyword` (required): Từ khóa tìm kiếm\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Search results\",\n  \"data\": [\n    {\n      \"_id\": \"...\",\n      \"username\": \"testuser\",\n      \"displayName\": \"Test User\",\n      \"avatarUrl\": \"https://...\" hoặc null\n    }\n  ]\n}\n```\n\n**Logic tìm kiếm:**\n- Tìm kiếm các user có `username` HOẶC `displayName` khớp với keyword\n- Sử dụng Regex case-insensitive (không phân biệt hoa thường)\n- Partial match (tìm kiếm gần đúng)\n- Loại bỏ user hiện tại khỏi kết quả\n- Chỉ trả về tối đa 20 kết quả\n- Chỉ lấy user active (`isActive: true`)\n\n**Các trường trả về (chỉ public):**\n- `_id`: ID của user\n- `username`: Username\n- `displayName`: Tên hiển thị (optional)\n- `avatarUrl`: URL avatar (optional)\n\n**KHÔNG trả về:**\n- `passwordHash`\n- `email`\n- `phone`\n- `otp`\n\n**Ví dụ:**\n- Tìm \"tuan\" → sẽ ra \"Tuan_Anh\", \"Minh_Tuan\", \"tuan123\"\n- Tìm \"john\" → sẽ ra \"john_doe\", \"Johnny\", \"john123\""
+          "description": "Tìm kiếm người dùng theo keyword.\n\n**Query Params:**\n- `keyword` (required): Từ khóa tìm kiếm\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Search results\",\n  \"data\": [\n    {\n      \"_id\": \"...\",\n      \"username\": \"testuser\",\n      \"displayName\": \"Test User\",\n      \"avatarUrl\": \"https://...\" hoặc null\n    }\n  ]\n}\n```\n\n**Logic tìm kiếm:**\n- Tìm kiếm các user có `username` HOẶC `displayName` khớp với keyword\n- Sử dụng Regex case-insensitive (không phân biệt hoa thường)\n- Partial match (tìm kiếm gần đúng)\n- Loại bỏ user hiện tại khỏi kết quả\n- Chỉ trả về tối đa 20 kết quả\n- Chỉ lấy user active (`isActive: true`)\n\n**Các trường trả về (chỉ public):**\n- `_id`: ID của user\n- `username`: Username\n- `displayName`: Tên hiển thị (optional)\n- `avatarUrl`: URL avatar (optional)\n\n**KHÔNG trả về:**\n- `passwordHash`\n- `email`\n- `phone`\n- `otp`\n\n**Ví dụ:**\n- Tìm \"tuan\" → sẽ ra \"Tuan_Anh\", \"Minh_Tuan\", \"tuan123\"\n- Tìm \"john\" → sẽ ra \"john_doe\", \"Johnny\", \"john123\""
+      }
+    },
+    {
+      "name": "Get User By Username",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Response has user data with required fields', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.data).to.have.property('id');",
+              "    pm.expect(jsonData.data).to.have.property('username');",
+              "    pm.expect(jsonData.data).to.have.property('displayName');",
+              "    pm.expect(jsonData.data).to.have.property('avatarUrl');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/users/username/:username",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "users",
+            "username",
+            ":username"
+          ],
+          "variable": [
+            {
+              "key": "username",
+              "value": "testuser",
+              "description": "Username của user cần tìm"
+            }
+          ]
+        },
+        "description": "Lấy thông tin user theo username.\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"User retrieved successfully\",\n  \"data\": {\n    \"id\": \"...\",\n    \"username\": \"testuser\",\n    \"displayName\": \"Test User\",\n    \"avatarUrl\": \"https://...\" hoặc null\n  }\n}\n```\n\n**Lưu ý:**\n- Yêu cầu authentication (Bearer token)\n- Username sẽ được normalize (lowercase, trim) trước khi tìm kiếm\n- Chỉ trả về user active (`isActive: true`)\n- Nếu username không tồn tại hoặc user không active, trả về 404\n- Chỉ trả về các trường public: id, username, displayName, avatarUrl"
       }
     }
   ]

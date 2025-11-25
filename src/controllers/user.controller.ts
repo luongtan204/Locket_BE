@@ -5,6 +5,7 @@ import { AuthRequest } from '../middlewares/auth.middleware';
 import { asyncHandler } from '../utils/asyncHandler';
 import { ApiError, ok } from '../utils/apiResponse';
 import { userService } from '../services/user.service';
+import { getUserByUsername } from '../services/invite.service';
 
 // Định nghĩa type cho Multer file
 interface MulterFile {
@@ -166,6 +167,48 @@ export const searchUsers = asyncHandler(async (req: AuthRequest, res: Response) 
   const users = await userService.searchUsers(keyword, req.userId);
 
   return res.status(200).json(ok(users, 'Search results'));
+});
+
+/**
+ * Lấy thông tin user hiện tại
+ * GET /api/users/me
+ */
+export const getCurrentUser = asyncHandler(async (req: AuthRequest, res: Response) => {
+  if (!req.userId) {
+    throw new ApiError(401, 'Unauthorized');
+  }
+
+  const user = await User.findById(req.userId);
+  
+  if (!user) {
+    throw new ApiError(404, 'User not found');
+  }
+
+  // Trả về user đã cập nhật (loại bỏ passwordHash)
+  const userObj = user.toObject();
+  delete (userObj as any).passwordHash;
+
+  return res.status(200).json(ok(userObj, 'User retrieved successfully'));
+});
+
+/**
+ * Lấy thông tin user theo username
+ * GET /api/users/username/:username
+ */
+export const getUserByUsernameHandler = asyncHandler(async (req: AuthRequest, res: Response) => {
+  if (!req.userId) {
+    throw new ApiError(401, 'Unauthorized');
+  }
+
+  const { username } = req.params;
+
+  if (!username) {
+    throw new ApiError(400, 'username is required');
+  }
+
+  const userInfo = await getUserByUsername(username);
+
+  return res.status(200).json(ok(userInfo, 'User retrieved successfully'));
 });
 
 export const { list, getById, create, updateById, removeById } = buildCrud(User);

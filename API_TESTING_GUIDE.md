@@ -182,6 +182,108 @@ Server sẽ chạy tại: `http://localhost:4000`
 }
 ```
 
+### 5. Reset Password (Đổi mật khẩu)
+**Endpoint:** `POST /api/auth/reset-password`
+
+**Mô tả:** API này cho phép đặt lại mật khẩu sau khi đã verify OTP thành công. OTP có thể là:
+- OTP chưa được verify (verified: false)
+- OTP đã được verify trong vòng 10 phút gần đây (verified: true, updatedAt >= 10 phút trước)
+
+**Request:**
+```json
+{
+  "identifier": "user@example.com",
+  "code": "123456",
+  "newPassword": "newpassword123"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Password reset successfully",
+  "data": {
+    "message": "Password reset successfully"
+  }
+}
+```
+
+**Response (400) - OTP không hợp lệ hoặc đã hết hạn:**
+```json
+{
+  "success": false,
+  "message": "Invalid or expired OTP code"
+}
+```
+
+**Response (400) - Quá nhiều lần thử:**
+```json
+{
+  "success": false,
+  "message": "Too many attempts. Please request a new OTP."
+}
+```
+
+**Response (404) - Không tìm thấy user:**
+```json
+{
+  "success": false,
+  "message": "User not found"
+}
+```
+
+**Flow test hoàn chỉnh:**
+
+**Bước 1: Gửi OTP**
+```bash
+curl -X POST http://localhost:4000/api/auth/send-otp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "identifier": "user@example.com"
+  }'
+```
+
+**Bước 2: Lấy mã OTP từ console log hoặc email**
+
+**Bước 3: Verify OTP (tùy chọn - có thể bỏ qua và dùng trực tiếp ở bước 4)**
+```bash
+curl -X POST http://localhost:4000/api/auth/verify-otp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "identifier": "user@example.com",
+    "code": "123456"
+  }'
+```
+
+**Bước 4: Reset Password với OTP đã verify**
+```bash
+curl -X POST http://localhost:4000/api/auth/reset-password \
+  -H "Content-Type: application/json" \
+  -d '{
+    "identifier": "user@example.com",
+    "code": "123456",
+    "newPassword": "newpassword123"
+  }'
+```
+
+**Bước 5: Test đăng nhập với mật khẩu mới**
+```bash
+curl -X POST http://localhost:4000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "identifier": "user@example.com",
+    "password": "newpassword123"
+  }'
+```
+
+**Lưu ý quan trọng:**
+- OTP có thời gian hết hạn (mặc định 5 phút)
+- OTP đã verify có thể được sử dụng để reset password trong vòng 10 phút
+- Nếu nhập sai OTP quá 5 lần, OTP sẽ bị xóa và cần request OTP mới
+- Mật khẩu mới phải có ít nhất 6 ký tự
+- OTP code phải là 6 chữ số
+
 ---
 
 ## Friendship

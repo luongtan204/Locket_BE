@@ -1,0 +1,155 @@
+{
+  "info": {
+    "name": "Admin User API",
+    "description": "Admin User Management endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "// Sync token từ global variable vào collection variable",
+          "var globalToken = pm.globals.get('token');",
+          "if (globalToken) {",
+          "    pm.collectionVariables.set('token', globalToken);",
+          "}",
+          "",
+          "// Sync user_id từ global variable vào collection variable",
+          "var globalUserId = pm.globals.get('user_id');",
+          "if (globalUserId) {",
+          "    pm.collectionVariables.set('user_id', globalUserId);",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:4000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Ban User",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('User isActive should be false', function () {",
+              "    var jsonData = pm.response.json();",
+              "    if (jsonData.data && jsonData.data.user) {",
+              "        pm.expect(jsonData.data.user.isActive).to.be.false;",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/admin/users/:userId/ban",
+          "host": ["{{base_url}}"],
+          "path": ["api", "admin", "users", ":userId", "ban"],
+          "variable": [
+            {
+              "key": "userId",
+              "value": "{{user_id}}",
+              "description": "ID của user cần ban"
+            }
+          ]
+        },
+        "description": "Ban (khóa) tài khoản người dùng. Chỉ Admin/SuperAdmin mới có quyền.\n\n**Yêu cầu:**\n- Header: `Authorization: Bearer <token>` (token của admin)\n- User phải có role `admin` hoặc `superadmin`\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"User banned successfully\",\n  \"data\": {\n    \"user\": {\n      \"_id\": \"...\",\n      \"username\": \"...\",\n      \"isActive\": false\n    }\n  }\n}\n```\n\n**Lưu ý:**\n- Hành động này sẽ được ghi vào AdminAuditLog\n- isActive sẽ được set thành false"
+      }
+    },
+    {
+      "name": "Unban User",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('User isActive should be true', function () {",
+              "    var jsonData = pm.response.json();",
+              "    if (jsonData.data && jsonData.data.user) {",
+              "        pm.expect(jsonData.data.user.isActive).to.be.true;",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/admin/users/:userId/unban",
+          "host": ["{{base_url}}"],
+          "path": ["api", "admin", "users", ":userId", "unban"],
+          "variable": [
+            {
+              "key": "userId",
+              "value": "{{user_id}}",
+              "description": "ID của user cần unban"
+            }
+          ]
+        },
+        "description": "Unban (mở khóa) tài khoản người dùng. Chỉ Admin/SuperAdmin mới có quyền.\n\n**Yêu cầu:**\n- Header: `Authorization: Bearer <token>` (token của admin)\n- User phải có role `admin` hoặc `superadmin`\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"User unbanned successfully\",\n  \"data\": {\n    \"user\": {\n      \"_id\": \"...\",\n      \"username\": \"...\",\n      \"isActive\": true\n    }\n  }\n}\n```\n\n**Lưu ý:**\n- Hành động này sẽ được ghi vào AdminAuditLog với actionType 'UPDATE'\n- isActive sẽ được set thành true"
+      }
+    }
+  ]
+}
+

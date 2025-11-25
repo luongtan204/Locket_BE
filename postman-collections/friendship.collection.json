@@ -4,27 +4,6 @@
     "description": "Friendship endpoints",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
-  "event": [
-    {
-      "listen": "prerequest",
-      "script": {
-        "exec": [
-          "// Sync token từ global variable vào collection variable",
-          "var globalToken = pm.globals.get('token');",
-          "if (globalToken) {",
-          "    pm.collectionVariables.set('token', globalToken);",
-          "}",
-          "",
-          "// Sync user_id từ global variable vào collection variable",
-          "var globalUserId = pm.globals.get('user_id');",
-          "if (globalUserId) {",
-          "    pm.collectionVariables.set('user_id', globalUserId);",
-          "}"
-        ],
-        "type": "text/javascript"
-      }
-    }
-  ],
   "variable": [
     {
       "key": "base_url",
@@ -58,6 +37,11 @@
     },
     {
       "key": "audit_log_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refund_id",
       "value": "",
       "type": "string"
     }
@@ -216,6 +200,31 @@
     },
     {
       "name": "Send Friend Request",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Response has friendship data', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.data).to.have.property('_id');",
+              "    pm.expect(jsonData.data).to.have.property('status');",
+              "    pm.expect(jsonData.data.status).to.equal('pending');",
+              "});"
+            ]
+          }
+        }
+      ],
       "request": {
         "method": "POST",
         "header": [
@@ -230,7 +239,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"toUserId\": \"{{other_user_id}}\"\n}"
+          "raw": "{\n  \"toUserId\": \"652000000000000000000002\"\n}"
         },
         "url": {
           "raw": "{{base_url}}/api/friendships/request",
@@ -247,7 +256,88 @@
       }
     },
     {
+      "name": "Send Friend Request By Username",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Response has friendship data', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.data).to.have.property('_id');",
+              "    pm.expect(jsonData.data).to.have.property('status');",
+              "    pm.expect(jsonData.data.status).to.equal('pending');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"testuser\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/friendships/request-by-username",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "friendships",
+            "request-by-username"
+          ]
+        },
+        "description": "Gửi lời mời kết bạn bằng username.\n\n**Request Body:**\n```json\n{\n  \"username\": \"testuser\"\n}\n```\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Friend request sent successfully\",\n  \"data\": {\n    \"_id\": \"...\",\n    \"userA\": \"...\",\n    \"userB\": \"...\",\n    \"requestedBy\": \"...\",\n    \"status\": \"pending\"\n  }\n}\n```\n\n**Lưu ý:**\n- Username sẽ được normalize (lowercase, trim) trước khi tìm kiểm\n- Kiểm tra user đã đủ 20 bạn chưa (Locket limit)\n- Không thể gửi request cho chính mình\n- Nếu đã là bạn bè hoặc đã có request pending, sẽ báo lỗi\n- Nếu username không tồn tại, sẽ trả về 404"
+      }
+    },
+    {
       "name": "Accept Friend Request",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Response has friendship data with accepted status', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.data).to.have.property('status');",
+              "    pm.expect(jsonData.data.status).to.equal('accepted');",
+              "});"
+            ]
+          }
+        }
+      ],
       "request": {
         "method": "POST",
         "header": [

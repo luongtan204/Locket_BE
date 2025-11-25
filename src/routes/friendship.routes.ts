@@ -30,6 +30,13 @@ router.get('/check/:userId', requireAuth, friendshipController.checkStatus);
 router.post('/request', requireAuth, friendshipController.sendFriendRequest);
 
 /**
+ * POST /friendships/request-by-username
+ * Gửi lời mời kết bạn bằng username
+ * Body: { username: string }
+ */
+router.post('/request-by-username', requireAuth, friendshipController.sendFriendRequestByUsername);
+
+/**
  * POST /friendships/:requestId/accept
  * Chấp nhận lời mời kết bạn
  */

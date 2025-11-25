@@ -1,5 +1,7 @@
 import { Ad, IAd, AdPlacement } from '../models/ad.model';
 import { IUser } from '../models/user.model';
+import { ApiError } from '../utils/apiResponse';
+import { Types } from 'mongoose';
 
 /**
  * Kiểm tra user có xem quảng cáo không.
@@ -88,3 +90,88 @@ export async function trackAdImpression(adId: string) {
     { $inc: { impressionCount: 1 }, $currentDate: { updatedAt: true } }
   ).exec();
 }
+
+/**
+ * Service xử lý quản lý quảng cáo cho Admin
+ */
+class AdService {
+  /**
+   * Tạo quảng cáo mới
+   * @param adData - Dữ liệu quảng cáo
+   * @param createdBy - ID của admin tạo
+   * @returns Quảng cáo đã được tạo
+   */
+  async createAd(adData: {
+    name: string;
+    placement: AdPlacement;
+    imageUrl: string;
+    title?: string;
+    description?: string;
+    ctaText?: string;
+    ctaUrl?: string;
+    priority?: number;
+    isActive?: boolean;
+    startAt?: Date | null;
+    endAt?: Date | null;
+  }, createdBy: string): Promise<IAd> {
+    // Validation
+    if (!adData.name || typeof adData.name !== 'string' || adData.name.trim() === '') {
+      throw new ApiError(400, 'Name is required and must be a non-empty string');
+    }
+
+    if (!adData.placement || !['feed', 'splash', 'banner'].includes(adData.placement)) {
+      throw new ApiError(400, 'Placement is required and must be one of: feed, splash, banner');
+    }
+
+    if (!adData.imageUrl || typeof adData.imageUrl !== 'string' || adData.imageUrl.trim() === '') {
+      throw new ApiError(400, 'ImageUrl is required and must be a non-empty string');
+    }
+
+    // Tạo quảng cáo mới
+    const newAd = await Ad.create({
+      name: adData.name.trim(),
+      placement: adData.placement,
+      imageUrl: adData.imageUrl.trim(),
+      title: adData.title?.trim(),
+      description: adData.description?.trim(),
+      ctaText: adData.ctaText?.trim(),
+      ctaUrl: adData.ctaUrl?.trim(),
+      priority: adData.priority ?? 0,
+      isActive: adData.isActive !== undefined ? adData.isActive : true,
+      startAt: adData.startAt || null,
+      endAt: adData.endAt || null,
+      createdBy: new Types.ObjectId(createdBy),
+      impressionCount: 0,
+      clickCount: 0,
+    });
+
+    return newAd;
+  }
+
+  /**
+   * Cập nhật trạng thái quảng cáo (ACTIVE hoặc PAUSED)
+   * @param adId - ID của quảng cáo
+   * @param status - Trạng thái mới: 'ACTIVE' hoặc 'PAUSED'
+   * @param updatedBy - ID của admin cập nhật
+   * @returns Quảng cáo đã được cập nhật
+   */
+  async updateAdStatus(adId: string, status: 'ACTIVE' | 'PAUSED', updatedBy: string): Promise<IAd> {
+    // Tìm quảng cáo
+    const ad = await Ad.findById(adId);
+    if (!ad) {
+      throw new ApiError(404, 'Ad not found');
+    }
+
+    // Map status to isActive
+    const isActive = status === 'ACTIVE';
+
+    // Cập nhật trạng thái
+    ad.isActive = isActive;
+    ad.updatedBy = new Types.ObjectId(updatedBy);
+    await ad.save();
+
+    return ad;
+  }
+}
+
+export const adService = new AdService();

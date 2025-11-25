@@ -1,0 +1,87 @@
+{
+  "info": {
+    "name": "Admin Post API",
+    "description": "Admin Post Management endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "var globalToken = pm.globals.get('token');",
+          "if (globalToken) {",
+          "    pm.collectionVariables.set('token', globalToken);",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:4000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "post_id",
+      "value": "656000000000000000000001",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Delete Post",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Post should be deleted', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.data).to.have.property('post');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/admin/posts/:postId",
+          "host": ["{{base_url}}"],
+          "path": ["api", "admin", "posts", ":postId"],
+          "variable": [
+            {
+              "key": "postId",
+              "value": "{{post_id}}"
+            }
+          ]
+        },
+        "description": "Xóa vĩnh viễn một bài đăng và tất cả comment, reaction liên quan. Chỉ Admin/SuperAdmin mới có quyền.\n\n**Yêu cầu:**\n- Header: `Authorization: Bearer <token>` (token của admin)\n- User phải có role `admin` hoặc `superadmin`\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Post deleted successfully\",\n  \"data\": {\n    \"post\": {\n      \"_id\": \"...\",\n      \"author\": \"...\",\n      \"caption\": \"...\"\n    }\n  }\n}\n```\n\n**Lưu ý:**\n- Hành động này sẽ được ghi vào AdminAuditLog\n- Post, Comment và Reaction liên quan sẽ bị xóa vĩnh viễn"
+      }
+    }
+  ]
+}
+

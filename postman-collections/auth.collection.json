@@ -39,48 +39,16 @@
       "key": "audit_log_id",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "refund_id",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
     {
       "name": "Register",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Status code is 201', function () {",
-              "    pm.response.to.have.status(201);",
-              "});",
-              "",
-              "// Lưu token và user_id vào collection variables sau khi đăng ký",
-              "if (pm.response.code === 201) {",
-              "    try {",
-              "        var jsonData = pm.response.json();",
-              "        ",
-              "        if (jsonData.success && jsonData.data) {",
-              "            // Lưu token",
-              "            if (jsonData.data.token) {",
-              "                pm.collectionVariables.set('token', jsonData.data.token);",
-              "                pm.globals.set('token', jsonData.data.token);",
-              "                console.log('Token saved to collection and global variables');",
-              "            }",
-              "            ",
-              "            // Lưu user_id",
-              "            if (jsonData.data.user && jsonData.data.user.id) {",
-              "                pm.collectionVariables.set('user_id', jsonData.data.user.id);",
-              "                pm.globals.set('user_id', jsonData.data.user.id);",
-              "                console.log('User ID saved:', jsonData.data.user.id);",
-              "            }",
-              "        }",
-              "    } catch (error) {",
-              "        console.error('Error saving token:', error);",
-              "    }",
-              "}"
-            ]
-          }
-        }
-      ],
       "request": {
         "method": "POST",
         "header": [
@@ -113,45 +81,10 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test('Status code is 200', function () {",
-              "    pm.response.to.have.status(200);",
-              "});",
-              "",
-              "pm.test('Response has success field', function () {",
-              "    var jsonData = pm.response.json();",
-              "    pm.expect(jsonData).to.have.property('success');",
-              "    pm.expect(jsonData.success).to.be.true;",
-              "});",
-              "",
-              "// Lưu token và user_id vào collection variables",
               "if (pm.response.code === 200) {",
-              "    try {",
-              "        var jsonData = pm.response.json();",
-              "        ",
-              "        if (jsonData.success && jsonData.data) {",
-              "            // Lưu token",
-              "            if (jsonData.data.token) {",
-              "                pm.collectionVariables.set('token', jsonData.data.token);",
-              "                pm.globals.set('token', jsonData.data.token);",
-              "                console.log('Token saved to collection and global variables');",
-              "            } else {",
-              "                console.error('Token not found in response:', jsonData);",
-              "            }",
-              "            ",
-              "            // Lưu user_id",
-              "            if (jsonData.data.user && jsonData.data.user.id) {",
-              "                pm.collectionVariables.set('user_id', jsonData.data.user.id);",
-              "                pm.globals.set('user_id', jsonData.data.user.id);",
-              "                console.log('User ID saved:', jsonData.data.user.id);",
-              "            } else {",
-              "                console.error('User ID not found in response:', jsonData);",
-              "            }",
-              "        } else {",
-              "            console.error('Invalid response structure:', jsonData);",
-              "        }",
-              "    } catch (error) {",
-              "        console.error('Error saving token:', error);",
-              "    }",
+              "    var jsonData = pm.response.json();",
+              "    pm.collectionVariables.set('token', jsonData.data.token);",
+              "    pm.collectionVariables.set('user_id', jsonData.data.user.id);",
               "}"
             ]
           }
@@ -211,43 +144,6 @@
     },
     {
       "name": "Verify OTP",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Status code is 200', function () {",
-              "    pm.response.to.have.status(200);",
-              "});",
-              "",
-              "// Lưu token và user_id vào collection variables sau khi verify OTP",
-              "if (pm.response.code === 200) {",
-              "    try {",
-              "        var jsonData = pm.response.json();",
-              "        ",
-              "        if (jsonData.success && jsonData.data) {",
-              "            // Lưu token",
-              "            if (jsonData.data.token) {",
-              "                pm.collectionVariables.set('token', jsonData.data.token);",
-              "                pm.globals.set('token', jsonData.data.token);",
-              "                console.log('Token saved to collection and global variables');",
-              "            }",
-              "            ",
-              "            // Lưu user_id",
-              "            if (jsonData.data.user && jsonData.data.user.id) {",
-              "                pm.collectionVariables.set('user_id', jsonData.data.user.id);",
-              "                pm.globals.set('user_id', jsonData.data.user.id);",
-              "                console.log('User ID saved:', jsonData.data.user.id);",
-              "            }",
-              "        }",
-              "    } catch (error) {",
-              "        console.error('Error saving token:', error);",
-              "    }",
-              "}"
-            ]
-          }
-        }
-      ],
       "request": {
         "method": "POST",
         "header": [

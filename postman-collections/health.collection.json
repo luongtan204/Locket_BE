@@ -39,6 +39,11 @@
       "key": "audit_log_id",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "refund_id",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [

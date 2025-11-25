@@ -39,6 +39,11 @@
       "key": "audit_log_id",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "refund_id",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -52,6 +57,186 @@
           "host": ["{{base_url}}"],
           "path": ["api", "health"]
         }
+      }
+    },
+    {
+      "name": "Get Public Plans",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Response has plans array', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.data).to.have.property('plans');",
+              "    pm.expect(jsonData.data.plans).to.be.an('array');",
+              "});",
+              "",
+              "pm.test('Plans have required public fields', function () {",
+              "    var jsonData = pm.response.json();",
+              "    if (jsonData.data.plans && jsonData.data.plans.length > 0) {",
+              "        var plan = jsonData.data.plans[0];",
+              "        pm.expect(plan).to.have.property('name');",
+              "        pm.expect(plan).to.have.property('price');",
+              "        pm.expect(plan).to.have.property('features');",
+              "        ",
+              "        // Verify private fields are not exposed",
+              "        pm.expect(plan).to.not.have.property('_id');",
+              "        pm.expect(plan).to.not.have.property('code');",
+              "        pm.expect(plan).to.not.have.property('isActive');",
+              "        pm.expect(plan).to.not.have.property('providerMetadata');",
+              "        pm.expect(plan).to.not.have.property('createdAt');",
+              "        pm.expect(plan).to.not.have.property('updatedAt');",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/plans",
+          "host": ["{{base_url}}"],
+          "path": ["api", "plans"]
+        },
+        "description": "Lấy danh sách các Plan công khai (đang hoạt động). Không cần authentication.\n\n**Yêu cầu:**\n- Không cần header Authorization\n- Chỉ trả về các plan có `isActive: true`\n- Chỉ trả về 3 trường công khai: `name`, `price`, `features`\n\n**Response (200 OK):**\n```json\n{\n  \"success\": true,\n  \"message\": \"Available plans retrieved successfully\",\n  \"data\": {\n    \"plans\": [\n      {\n        \"name\": \"Premium Monthly\",\n        \"price\": 99000,\n        \"features\": {\n          \"maxPosts\": 1000,\n          \"adFree\": true,\n          \"prioritySupport\": true\n        }\n      },\n      {\n        \"name\": \"Premium Yearly\",\n        \"price\": 950000,\n        \"features\": {\n          \"maxPosts\": -1,\n          \"adFree\": true,\n          \"prioritySupport\": true,\n          \"customTheme\": true\n        }\n      }\n    ]\n  }\n}\n```\n\n**Các trường trả về (công khai - chỉ 3 trường):**\n- `name` (string): Tên gói\n- `price` (number): Giá gói\n- `features` (object): Cấu hình tính năng (limits/quyền)\n\n**Các trường KHÔNG trả về (bảo mật):**\n- `_id`: ID nội bộ\n- `code`: Mã gói nội bộ\n- `currency`: Đơn vị tiền tệ\n- `interval`: Chu kỳ thanh toán\n- `intervalCount`: Số chu kỳ\n- `trialDays`: Số ngày dùng thử\n- `description`: Mô tả gói\n- `isActive`: Trạng thái hoạt động\n- `providerMetadata`: Metadata payment provider\n- `createdAt`, `updatedAt`: Timestamps\n\n**Lưu ý:**\n- Chỉ trả về các plan có `isActive: true`\n- Kết quả được sắp xếp theo giá tăng dần\n- Không cần authentication, đây là public endpoint\n- Chỉ trả về đúng 3 trường công khai theo yêu cầu: name, price, features"
+      }
+    },
+    {
+      "name": "Purchase Subscription",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Response has subscription and invoice', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.data).to.have.property('subscription');",
+              "    pm.expect(jsonData.data).to.have.property('invoice');",
+              "});",
+              "",
+              "pm.test('Subscription has correct status', function () {",
+              "    var jsonData = pm.response.json();",
+              "    if (jsonData.data.subscription) {",
+              "        pm.expect(jsonData.data.subscription.status).to.equal('active');",
+              "        pm.expect(jsonData.data.subscription).to.have.property('startAt');",
+              "        pm.expect(jsonData.data.subscription).to.have.property('currentPeriodStart');",
+              "        pm.expect(jsonData.data.subscription).to.have.property('currentPeriodEnd');",
+              "    }",
+              "});",
+              "",
+              "pm.test('Invoice has paid status', function () {",
+              "    var jsonData = pm.response.json();",
+              "    if (jsonData.data.invoice) {",
+              "        pm.expect(jsonData.data.invoice.status).to.equal('paid');",
+              "        pm.expect(jsonData.data.invoice).to.have.property('paidAt');",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"planId\": \"656000000000000000000001\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/subscriptions/purchase",
+          "host": ["{{base_url}}"],
+          "path": ["api", "subscriptions", "purchase"]
+        },
+        "description": "Mua gói subscription tức thì (bỏ qua thanh toán). Yêu cầu authentication.\n\n**Yêu cầu:**\n- Header: `Authorization: Bearer <token>` (token của user)\n- Body: `{ planId: string }`\n\n**Logic:**\n1. Kiểm tra user đã có subscription active chưa (nếu có thì trả về lỗi)\n2. Tìm Plan bằng planId\n3. Tạo Invoice mới với status 'paid', amount = plan.price\n4. Tạo Subscription mới với status 'active', tính toán startDate và endDate dựa trên interval và intervalCount của Plan\n5. Ghi nhận vào revenue snapshot (event-driven)\n\n**Body Parameters:**\n- `planId` (required, string): ID của plan cần mua\n\n**Response (201 Created):**\n```json\n{\n  \"success\": true,\n  \"message\": \"Subscription created successfully\",\n  \"data\": {\n    \"subscription\": {\n      \"_id\": \"...\",\n      \"user\": \"...\",\n      \"plan\": \"...\",\n      \"status\": \"active\",\n      \"startAt\": \"2024-01-15T10:30:00.000Z\",\n      \"currentPeriodStart\": \"2024-01-15T10:30:00.000Z\",\n      \"currentPeriodEnd\": \"2024-02-15T10:30:00.000Z\",\n      \"cancelAtPeriodEnd\": false,\n      \"autoRenew\": false,\n      \"provider\": \"manual\",\n      \"latestInvoice\": \"...\",\n      \"createdAt\": \"2024-01-15T10:30:00.000Z\",\n      \"updatedAt\": \"2024-01-15T10:30:00.000Z\"\n    },\n    \"invoice\": {\n      \"_id\": \"...\",\n      \"subscription\": \"...\",\n      \"user\": \"...\",\n      \"amount\": 99000,\n      \"currency\": \"VND\",\n      \"grossAmount\": 99000,\n      \"netAmount\": 99000,\n      \"status\": \"paid\",\n      \"periodStart\": \"2024-01-15T10:30:00.000Z\",\n      \"periodEnd\": \"2024-02-15T10:30:00.000Z\",\n      \"paidAt\": \"2024-01-15T10:30:00.000Z\",\n      \"provider\": \"manual\"\n    }\n  }\n}\n```\n\n**Lưu ý:**\n- User không được có subscription active (trialing, active, past_due) trước khi mua gói mới\n- Plan phải có `isActive: true`\n- Duration được tính từ `interval` và `intervalCount` của Plan:\n  - day: 1 ngày\n  - week: 7 ngày\n  - month: 30 ngày\n  - year: 365 ngày\n- Invoice được tạo với status 'paid' ngay lập tức (bỏ qua thanh toán)\n- Subscription được tạo với status 'active' và `autoRenew: false`\n- Revenue được ghi nhận tự động vào revenue snapshot\n\n**Lỗi có thể gặp:**\n- 400: User already has an active subscription\n- 400: PlanId is required and must be a non-empty string\n- 404: Plan not found\n- 400: Plan is not active\n- 401: Unauthorized (thiếu token hoặc token không hợp lệ)"
+      }
+    },
+    {
+      "name": "Submit Refund Request",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Refund has been created with PENDING status', function () {",
+              "    var jsonData = pm.response.json();",
+              "    if (jsonData.data && jsonData.data.refund) {",
+              "        var refund = jsonData.data.refund;",
+              "        pm.expect(refund).to.have.property('_id');",
+              "        pm.expect(refund.status).to.equal('PENDING');",
+              "        pm.expect(refund).to.have.property('userId');",
+              "        pm.expect(refund).to.have.property('invoiceId');",
+              "        pm.expect(refund).to.have.property('amount');",
+              "        pm.expect(refund).to.have.property('reasonByUser');",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"invoiceId\": \"656000000000000000000001\",\n  \"reason\": \"Sản phẩm không đúng mô tả, muốn hoàn tiền\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/refunds",
+          "host": ["{{base_url}}"],
+          "path": ["api", "refunds"]
+        },
+        "description": "Người dùng gửi yêu cầu hoàn tiền cho một hóa đơn đã thanh toán. Yêu cầu authentication.\n\n**Yêu cầu:**\n- Header: `Authorization: Bearer <token>` (token của user)\n- Body: `{ invoiceId: string, reason: string }`\n\n**Logic:**\n1. Kiểm tra invoiceId có thuộc về userId không\n2. Kiểm tra invoice đã được thanh toán chưa (status phải là 'paid')\n3. Kiểm tra chưa có yêu cầu Refund PENDING nào cho hóa đơn này\n4. Tạo bản ghi Refund mới với status: 'PENDING'\n\n**Body Parameters:**\n- `invoiceId` (required, string): ID của invoice cần hoàn tiền\n- `reason` (required, string): Lý do người dùng yêu cầu hoàn tiền (max 1000 characters)\n\n**Response (201 Created):**\n```json\n{\n  \"success\": true,\n  \"message\": \"Refund request submitted successfully\",\n  \"data\": {\n    \"refund\": {\n      \"_id\": \"...\",\n      \"userId\": \"...\",\n      \"invoiceId\": \"...\",\n      \"amount\": 99000,\n      \"currency\": \"VND\",\n      \"reasonByUser\": \"Sản phẩm không đúng mô tả, muốn hoàn tiền\",\n      \"status\": \"PENDING\",\n      \"provider\": \"manual\",\n      \"createdAt\": \"2024-01-15T10:30:00.000Z\",\n      \"updatedAt\": \"2024-01-15T10:30:00.000Z\"\n    }\n  }\n}\n```\n\n**Lưu ý:**\n- Chỉ user sở hữu invoice mới có thể yêu cầu hoàn tiền\n- Invoice phải có status 'paid' mới có thể yêu cầu hoàn tiền\n- Mỗi invoice chỉ có thể có 1 refund request PENDING (do invoiceId là unique)\n- Amount sẽ tự động lấy từ invoice (grossAmount hoặc amount)\n- Status mặc định là 'PENDING', chờ admin xử lý\n\n**Lỗi có thể gặp:**\n- 400: InvoiceId is required and must be a non-empty string\n- 400: Reason is required and must be a non-empty string\n- 400: Reason must be less than 1000 characters\n- 404: Invoice not found\n- 403: Invoice does not belong to this user\n- 400: Invoice must be paid before requesting refund\n- 400: A pending refund request already exists for this invoice\n- 401: Unauthorized (thiếu token hoặc token không hợp lệ)\n\n**Ví dụ Body:**\n```json\n{\n  \"invoiceId\": \"656000000000000000000001\",\n  \"reason\": \"Sản phẩm không đúng mô tả, muốn hoàn tiền\"\n}\n```"
       }
     },
     {
@@ -1056,6 +1241,131 @@
               ]
             },
             "description": "Xóa vĩnh viễn một bài đăng và tất cả comment, reaction liên quan. Chỉ Admin/SuperAdmin mới có quyền.\n\n**Yêu cầu:**\n- Header: `Authorization: Bearer <token>` (token của admin)\n- User phải có role `admin` hoặc `superadmin`\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Post deleted successfully\",\n  \"data\": {\n    \"post\": {\n      \"_id\": \"...\",\n      \"author\": \"...\",\n      \"caption\": \"...\"\n    }\n  }\n}\n```\n\n**Lưu ý:**\n- Hành động này sẽ được ghi vào AdminAuditLog\n- Post, Comment và Reaction liên quan sẽ bị xóa vĩnh viễn"
+          }
+        },
+        {
+          "name": "Create Plan",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response has success field', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Plan has all required fields', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.plan) {",
+                  "        var plan = jsonData.data.plan;",
+                  "        pm.expect(plan).to.have.property('_id');",
+                  "        pm.expect(plan).to.have.property('code');",
+                  "        pm.expect(plan).to.have.property('name');",
+                  "        pm.expect(plan).to.have.property('price');",
+                  "        pm.expect(plan).to.have.property('currency');",
+                  "        pm.expect(plan).to.have.property('interval');",
+                  "        pm.expect(plan).to.have.property('intervalCount');",
+                  "        pm.expect(plan).to.have.property('isActive');",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"premium_monthly\",\n  \"name\": \"Premium Monthly\",\n  \"description\": \"Gói Premium hàng tháng với đầy đủ tính năng\",\n  \"price\": 99000,\n  \"currency\": \"VND\",\n  \"interval\": \"month\",\n  \"intervalCount\": 1,\n  \"trialDays\": 7,\n  \"features\": {\n    \"maxPosts\": 1000,\n    \"adFree\": true,\n    \"prioritySupport\": true\n  },\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/plans",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "plans"]
+            },
+            "description": "Tạo Plan mới. Chỉ Admin/SuperAdmin mới có quyền.\n\n**Yêu cầu:**\n- Header: `Authorization: Bearer <token>` (token của admin)\n- User phải có role `admin` hoặc `superadmin`\n- Body: JSON với các trường sau:\n\n**Body Parameters:**\n- `code` (required, string): Mã gói nội bộ, phải unique (ví dụ: 'premium_monthly')\n- `name` (required, string): Tên gói (ví dụ: 'Premium Monthly')\n- `description` (optional, string): Mô tả gói\n- `price` (required, number): Giá gói (đơn vị nhỏ nhất, ví dụ VND)\n- `currency` (optional, string): Đơn vị tiền tệ (default: 'VND')\n- `interval` (required, string): Chu kỳ thanh toán - 'day', 'week', 'month', 'year'\n- `intervalCount` (optional, number): Số chu kỳ (default: 1, min: 1)\n- `trialDays` (optional, number): Số ngày dùng thử (default: 0)\n- `features` (optional, object): Cấu hình tính năng (limits/quyền)\n- `isActive` (optional, boolean): Trạng thái hoạt động (default: true)\n- `providerMetadata` (optional, object): Metadata mapping với payment provider\n\n**Response (201 Created):**\n```json\n{\n  \"success\": true,\n  \"message\": \"Plan created successfully\",\n  \"data\": {\n    \"plan\": {\n      \"_id\": \"...\",\n      \"code\": \"premium_monthly\",\n      \"name\": \"Premium Monthly\",\n      \"description\": \"Gói Premium hàng tháng với đầy đủ tính năng\",\n      \"price\": 99000,\n      \"currency\": \"VND\",\n      \"interval\": \"month\",\n      \"intervalCount\": 1,\n      \"trialDays\": 7,\n      \"features\": {\n        \"maxPosts\": 1000,\n        \"adFree\": true,\n        \"prioritySupport\": true\n      },\n      \"isActive\": true,\n      \"createdAt\": \"2024-01-01T00:00:00.000Z\",\n      \"updatedAt\": \"2024-01-01T00:00:00.000Z\"\n    }\n  }\n}\n```\n\n**Lưu ý:**\n- Hành động này sẽ được ghi vào AdminAuditLog với actionType 'CREATE' và targetResource 'PLAN'\n- Code phải unique, nếu trùng sẽ trả về lỗi 400\n- Validation sẽ kiểm tra tất cả các trường bắt buộc và format\n\n**Ví dụ Body:**\n```json\n{\n  \"code\": \"premium_monthly\",\n  \"name\": \"Premium Monthly\",\n  \"description\": \"Gói Premium hàng tháng\",\n  \"price\": 99000,\n  \"currency\": \"VND\",\n  \"interval\": \"month\",\n  \"intervalCount\": 1,\n  \"trialDays\": 7,\n  \"features\": {\n    \"maxPosts\": 1000,\n    \"adFree\": true\n  },\n  \"isActive\": true\n}\n```"
+          }
+        },
+        {
+          "name": "Process Refund",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success field', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Refund has been processed', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.refund) {",
+                  "        var refund = jsonData.data.refund;",
+                  "        pm.expect(refund).to.have.property('status');",
+                  "        pm.expect(['APPROVED', 'REJECTED']).to.include(refund.status);",
+                  "        pm.expect(refund).to.have.property('processedByAdminId');",
+                  "        ",
+                  "        // If approved, should have refundedAt",
+                  "        if (refund.status === 'APPROVED') {",
+                  "            pm.expect(refund).to.have.property('refundedAt');",
+                  "        }",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"APPROVED\",\n  \"adminNote\": \"Đã xác nhận và hoàn tiền thành công\",\n  \"externalRefundId\": \"ref_123456789\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/refunds/:refundId/process",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "refunds", ":refundId", "process"],
+              "variable": [
+                {
+                  "key": "refundId",
+                  "value": "{{refund_id}}",
+                  "description": "ID của refund cần xử lý"
+                }
+              ]
+            },
+            "description": "Xử lý refund: phê duyệt (APPROVED) hoặc từ chối (REJECTED). Chỉ Admin/SuperAdmin mới có quyền.\n\n**Yêu cầu:**\n- Header: `Authorization: Bearer <token>` (token của admin)\n- User phải có role `admin` hoặc `superadmin`\n- Refund phải có status 'PENDING'\n\n**Body Parameters:**\n- `status` (required, string): Trạng thái xử lý - 'APPROVED' hoặc 'REJECTED'\n- `adminNote` (optional, string): Ghi chú của Admin về quyết định xử lý\n- `externalRefundId` (optional, string): ID refund từ payment provider (nếu có)\n\n**Logic:**\n- Nếu `status = 'APPROVED'`: Refund được phê duyệt\n  - Status được cập nhật thành 'APPROVED'\n  - `refundedAt` được set thành thời điểm hiện tại\n  - `processedByAdminId` được set thành ID của admin xử lý\n  - `adminNote` được lưu (nếu có)\n  - `externalRefundId` được lưu (nếu có)\n  - Ghi nhận vào revenue snapshot (event-driven)\n  - TODO: Gọi API payment provider để thực hiện hoàn tiền thực tế\n\n- Nếu `status = 'REJECTED'`: Refund bị từ chối\n  - Status được cập nhật thành 'REJECTED'\n  - `processedByAdminId` được set thành ID của admin xử lý\n  - `adminNote` được lưu (nếu có)\n  - `refundedAt` không được set\n\n**Response (200 OK):**\n```json\n{\n  \"success\": true,\n  \"message\": \"Refund approved successfully\" hoặc \"Refund rejected successfully\",\n  \"data\": {\n    \"refund\": {\n      \"_id\": \"...\",\n      \"userId\": \"...\",\n      \"invoiceId\": \"...\",\n      \"amount\": 99000,\n      \"currency\": \"VND\",\n      \"status\": \"APPROVED\" hoặc \"REJECTED\",\n      \"reasonByUser\": \"Sản phẩm không đúng mô tả\",\n      \"adminNote\": \"Đã xác nhận và hoàn tiền thành công\",\n      \"provider\": \"stripe\",\n      \"externalRefundId\": \"ref_123456789\",\n      \"processedByAdminId\": \"...\",\n      \"refundedAt\": \"2024-01-15T10:30:00.000Z\" (nếu approved),\n      \"createdAt\": \"2024-01-15T09:00:00.000Z\",\n      \"updatedAt\": \"2024-01-15T10:30:00.000Z\"\n    }\n  }\n}\n```\n\n**Lưu ý:**\n- Hành động này sẽ được ghi vào AdminAuditLog với actionType 'UPDATE' và targetResource 'REFUND'\n- Refund phải có status 'PENDING', nếu đã được xử lý sẽ trả về lỗi 400\n- Khi APPROVED, refund sẽ được ghi nhận vào revenue snapshot để tính toán doanh thu chính xác\n- Nếu có payment provider (Stripe, VNPay, etc.), cần gọi API của provider để thực hiện hoàn tiền thực tế\n\n**Ví dụ Body - Approve:**\n```json\n{\n  \"status\": \"APPROVED\",\n  \"adminNote\": \"Đã xác nhận và hoàn tiền thành công\",\n  \"externalRefundId\": \"ref_stripe_123456789\"\n}\n```\n\n**Ví dụ Body - Reject:**\n```json\n{\n  \"status\": \"REJECTED\",\n  \"adminNote\": \"Yêu cầu không hợp lệ, đã quá thời hạn hoàn tiền\"\n}\n```\n\n**Lỗi có thể gặp:**\n- 400: Refund has already been processed (refund không còn status 'PENDING')\n- 400: Status is required and must be either 'APPROVED' or 'REJECTED'\n- 404: Refund not found\n- 401: Missing admin context\n- 403: Access Denied: Insufficient permissions"
           }
         },
         {

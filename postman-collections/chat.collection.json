@@ -4,27 +4,6 @@
     "description": "Chat endpoints",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
-  "event": [
-    {
-      "listen": "prerequest",
-      "script": {
-        "exec": [
-          "// Sync token từ global variable vào collection variable",
-          "var globalToken = pm.globals.get('token');",
-          "if (globalToken) {",
-          "    pm.collectionVariables.set('token', globalToken);",
-          "}",
-          "",
-          "// Sync user_id từ global variable vào collection variable",
-          "var globalUserId = pm.globals.get('user_id');",
-          "if (globalUserId) {",
-          "    pm.collectionVariables.set('user_id', globalUserId);",
-          "}"
-        ],
-        "type": "text/javascript"
-      }
-    }
-  ],
   "variable": [
     {
       "key": "base_url",
@@ -58,6 +37,11 @@
     },
     {
       "key": "audit_log_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refund_id",
       "value": "",
       "type": "string"
     }

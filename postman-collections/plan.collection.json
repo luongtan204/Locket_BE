@@ -1,0 +1,69 @@
+{
+  "info": {
+    "name": "Plan API",
+    "description": "Public Plan endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:4000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Get Public Plans",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success field', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success');",
+              "    pm.expect(jsonData.success).to.be.true;",
+              "});",
+              "",
+              "pm.test('Response has plans array', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.data).to.have.property('plans');",
+              "    pm.expect(jsonData.data.plans).to.be.an('array');",
+              "});",
+              "",
+              "pm.test('Plans have required public fields', function () {",
+              "    var jsonData = pm.response.json();",
+              "    if (jsonData.data.plans && jsonData.data.plans.length > 0) {",
+              "        var plan = jsonData.data.plans[0];",
+              "        pm.expect(plan).to.have.property('name');",
+              "        pm.expect(plan).to.have.property('price');",
+              "        pm.expect(plan).to.have.property('features');",
+              "        ",
+              "        // Verify private fields are not exposed",
+              "        pm.expect(plan).to.not.have.property('_id');",
+              "        pm.expect(plan).to.not.have.property('code');",
+              "        pm.expect(plan).to.not.have.property('isActive');",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/plans",
+          "host": ["{{base_url}}"],
+          "path": ["api", "plans"]
+        },
+        "description": "Lấy danh sách các Plan công khai (đang hoạt động). Không cần authentication.\n\n**Yêu cầu:**\n- Không cần header Authorization\n- Chỉ trả về các plan có `isActive: true`\n- Chỉ trả về 3 trường công khai: `name`, `price`, `features`\n\n**Response (200 OK):**\n```json\n{\n  \"success\": true,\n  \"message\": \"Available plans retrieved successfully\",\n  \"data\": {\n    \"plans\": [\n      {\n        \"name\": \"Premium Monthly\",\n        \"price\": 99000,\n        \"features\": {\n          \"maxPosts\": 1000,\n          \"adFree\": true,\n          \"prioritySupport\": true\n        }\n      }\n    ]\n  }\n}\n```\n\n**Lưu ý:**\n- Chỉ trả về các plan có `isActive: true`\n- Kết quả được sắp xếp theo giá tăng dần\n- Không cần authentication, đây là public endpoint"
+      }
+    }
+  ]
+}
+

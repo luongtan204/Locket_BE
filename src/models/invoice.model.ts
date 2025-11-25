@@ -66,8 +66,8 @@ const InvoiceSchema = new Schema<IInvoice>(
     periodEnd: { type: Date, required: true, index: true },
 
     provider: { type: String, enum: ['stripe', 'vnpay', 'momo', 'apple', 'google', 'manual'], default: 'manual' },
-    externalInvoiceId: { type: String, default: null, sparse: true, unique: true },
-    externalPaymentIntentId: { type: String, default: null, sparse: true, unique: true },
+    externalInvoiceId: { type: String, sparse: true, unique: true }, // Không có default, để undefined thay vì null
+    externalPaymentIntentId: { type: String, sparse: true, unique: true }, // Không có default, để undefined thay vì null
 
     paidAt: { type: Date, default: null, index: true },
     failedAt: { type: Date, default: null },
